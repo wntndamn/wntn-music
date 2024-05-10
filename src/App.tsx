@@ -1,24 +1,13 @@
-import { useState } from "react";
 import Library from "./components/library";
 import Player from "./components/player";
 
 function App() {
-  const [isLibraryVisible, setIsLibraryVisible] = useState(false);
   return (
-    <div className="flex flex-col items-center justify-center w-screen py-5 lg:py-10">
-      <div className="flex justify-between w-full gap-10 px-5 lg:w-1/2">
-        <h1 className="text-xl font-bold ">wntn music</h1>
-        <button
-          className="text-xl "
-          onClick={() => setIsLibraryVisible((prevValue) => !prevValue)}
-        >
-          Library
-        </button>
+    <div className="min-h-full relative flex flex-col items-start justify-start w-screen p-10 gap-3">
+      <div className="container flex justify-between w-full gap-10">
+        <h1 className="text-2xl font-bold">wntn music</h1>
       </div>
-      <Library
-        isLibraryVisible={isLibraryVisible}
-        setIsLibraryVisible={setIsLibraryVisible}
-      />
+      <Library />
       <Player />
     </div>
   );

@@ -14,7 +14,7 @@ const Player = () => {
   const [currnetTime, setCurrentTime] = useState<number>(0);
 
   const audioPlayer = useRef<HTMLAudioElement | null>(null);
-  const progressBar = useRef<HTMLInputElement | null>(null);
+  const progressBar = useRef<HTMLDivElement | null>(null);
 
   const playAudio = () => {
     if (audioPlayer.current) {
@@ -36,9 +36,9 @@ const Player = () => {
         audioPlayer.current!.addEventListener("canplaythrough", () => {
           audioPlayer.current!.play();
         });
-        if (progressBar.current != null) {
-          progressBar.current!.max = seconds.toString();
-        }
+        // if (progressBar.current != null) {
+        //   progressBar.current!.max = seconds.toString();
+        // }
       };
     }
   }, []);
@@ -62,16 +62,15 @@ const Player = () => {
   };
 
   const handleTimeUpdate = () => {
-    if (audioPlayer.current) {
+    if (audioPlayer.current && progressBar.current) {
       setCurrentTime(audioPlayer.current.currentTime);
-      progressBar.current!.value = audioPlayer.current.currentTime.toString();
+      progressBar.current.style.width = `${(audioPlayer.current.currentTime / audioPlayer.current.duration) * 100}%`;
     }
   };
 
-  const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = event.target.value;
+  const setSeekByPercentage = (percentage: number) => {
     if (audioPlayer.current) {
-      audioPlayer.current!.currentTime = Number(newValue);
+      audioPlayer.current.currentTime = audioPlayer.current.duration * percentage;
     }
     setIsPlaying(true);
   };
@@ -83,64 +82,64 @@ const Player = () => {
     }
   };
 
-  return (
-    <div className="flex flex-col items-center justify-center w-full gap-12 px-4 py-10 lg:px-0 lg:w-1/2 ">
-      <img src={Songs[song].cover} className="rounded-2xl " />
-      <div className="flex flex-col items-center justify-center gap-2">
-        <h2 className="text-2xl font-bold">{Songs[song].title}</h2>
-        <h3 className="text-lg text-gray-500">{Songs[song].author}</h3>
+  return <div className='fixed bottom-0 left-0 w-full'>
+    <div className="relative flex flex-col items-center w-full h-4 gap-2 overflow-hidden">
+      <audio
+        ref={audioPlayer}
+        src={Songs[song].song}
+        controls
+        onTimeUpdate={handleTimeUpdate}
+        className="hidden"
+      />
+      <div className="flex items-center justify-between w-full leading-none select-none px-4" onClick={(e) => {
+        setSeekByPercentage(e.clientX / e.currentTarget.clientWidth);
+      }}>
+        <div>{calculateTime(currnetTime)}</div>
+        <div ref={progressBar} className="absolute left-0 h-full bg-blue-100 -z-10"></div>
+        <div>{calculateTime(duration)}</div>
       </div>
-      <div className="flex flex-col items-center w-full gap-2">
-        <audio
-          ref={audioPlayer}
-          src={Songs[song].song}
-          controls
-          onTimeUpdate={handleTimeUpdate}
-          className="hidden"
-        />
-        <div className="flex w-full gap-4 px-2 lg:px-4">
-          <div className="w-12 ">{calculateTime(currnetTime)}</div>
-          <input
-            ref={progressBar}
-            type="range"
-            defaultValue={0}
-            onChange={handleSliderChange}
-            className="w-full"
-          />
-          <div>{calculateTime(duration)}</div>
+    </div>
+    <div className='w-full h-16 bg-blue-400 flex items-center justify-between px-6 py-2'>
+      <div className='flex items-center justify-start gap-4 h-full'>
+        <div className="flex items-center justify-center gap-2">
+          <span className="flex items-center justify-center w-1/3">
+            {Songs[song].id > 0 ? (
+              <button onClick={() => setSong(song - 1)} aria-label="Back Button">
+                <GrPrevious className="text-xl" />
+              </button>
+            ) : null}
+          </span>
+          <span className="flex items-center justify-center w-1/3">
+            <button onClick={togglePlayPause}>
+              {isPlaying ? (
+                <BsPauseFill className="text-3xl" />
+              ) : (
+                <BsFillPlayFill className="text-3xl" />
+              )}
+            </button>
+          </span>
+          <span className="flex items-center justify-center w-1/3">
+            {Songs[song].id < Songs.length - 1 ? (
+              <button
+                onClick={() => setSong(song + 1)}
+                aria-label="Forward Button"
+              >
+                <GrNext className="text-xl" />
+              </button>
+            ) : null}
+          </span>
+        </div>
+        <div className="flex items-center gap-4 h-full">
+          <img src={Songs[song].cover} className="rounded-2xl aspect-square h-full" />
+          <div className="flex flex-col items-start justify-center">
+            <h2 className="text-xl text-black font-bold">{Songs[song].title}</h2>
+            <h3 className="text-md text-white">{Songs[song].author}</h3>
+          </div>
         </div>
       </div>
-      <div className="flex justify-center w-3/4 h-12 gap-2 lg:w-1/3">
-        <span className="flex items-center justify-center w-1/3">
-          {Songs[song].id > 0 ? (
-            <button onClick={() => setSong(song - 1)} aria-label="Back Button">
-              <GrPrevious className="text-xl" />
-            </button>
-          ) : null}
-        </span>
-        <span className="flex items-center justify-center w-1/3">
-          <button onClick={togglePlayPause}>
-            {isPlaying ? (
-              <BsPauseFill className="text-3xl" />
-            ) : (
-              <BsFillPlayFill className="text-3xl" />
-            )}
-          </button>
-        </span>
-        <span className="flex items-center justify-center w-1/3">
-          {Songs[song].id < Songs.length - 1 ? (
-            <button
-              onClick={() => setSong(song + 1)}
-              aria-label="Forward Button"
-            >
-              <GrNext className="text-xl" />
-            </button>
-          ) : null}
-        </span>
-      </div>
-      <input type="range" min={0} max={100} onChange={e => onVolumeChange(e)}/>
+      <input type="range" min={0} max={100} onChange={e => onVolumeChange(e)} />
     </div>
-  );
+  </div>;
 };
 
 export default Player;
