@@ -114,6 +114,14 @@ export const Songs = [
   },
   {
     "id": 14,
+    "title": "\u0434\u043b\u044f \u0442\u0435\u0431\u044f 2",
+    "author": "neverlane",
+    "cover": "/covers/track-by-neverlane_new.jpg",
+    "decription": "wntn music <3",
+    "song": "/audio/\u0434\u043b\u044f \u0442\u0435\u0431\u044f 2.mp3"
+  },
+  {
+    "id": 15,
     "title": "\u0434\u043b\u044f \u0442\u0435\u0431\u044f",
     "author": "neverlane",
     "cover": "/covers/track-by-neverlane_new.jpg",
@@ -121,7 +129,7 @@ export const Songs = [
     "song": "/audio/\u0434\u043b\u044f \u0442\u0435\u0431\u044f.mp3"
   },
   {
-    "id": 15,
+    "id": 16,
     "title": "\u0437\u0430\u043f\u0440\u0435\u0442\u0438 \u043c\u043d\u0435 \u043a\u043e\u0434\u0438\u0442\u044c \u043d\u0430 \u043b\u0443\u0430",
     "author": "neverlane",
     "cover": "/covers/track-by-neverlane_new.jpg",
@@ -129,7 +137,7 @@ export const Songs = [
     "song": "/audio/\u0437\u0430\u043f\u0440\u0435\u0442\u0438 \u043c\u043d\u0435 \u043a\u043e\u0434\u0438\u0442\u044c \u043d\u0430 \u043b\u0443\u0430.mp3"
   },
   {
-    "id": 16,
+    "id": 17,
     "title": "\u043b\u0443 \u043b\u0443\u0430 \u0441\u0435\u043d\u044c\u043e\u0440",
     "author": "neverlane",
     "cover": "/covers/track-by-neverlane_new.jpg",
@@ -137,7 +145,7 @@ export const Songs = [
     "song": "/audio/\u043b\u0443 \u043b\u0443\u0430 \u0441\u0435\u043d\u044c\u043e\u0440.mp3"
   },
   {
-    "id": 17,
+    "id": 18,
     "title": "\u043b\u0443\u0430 \u0441\u043a\u0440\u0438\u043f\u0442",
     "author": "neverlane",
     "cover": "/covers/track-by-neverlane_new.jpg",
@@ -145,7 +153,7 @@ export const Songs = [
     "song": "/audio/\u043b\u0443\u0430 \u0441\u043a\u0440\u0438\u043f\u0442.mp3"
   },
   {
-    "id": 18,
+    "id": 19,
     "title": "\u043c\u043e\u0439 \u043a\u043e\u0442\u0435\u0433 \u0435\u0433\u043e\u0440 \u0434\u0432\u0430\u0447",
     "author": "neverlane",
     "cover": "/covers/track-by-neverlane_new.jpg",
@@ -153,7 +161,7 @@ export const Songs = [
     "song": "/audio/\u043c\u043e\u0439 \u043a\u043e\u0442\u0435\u0433 \u0435\u0433\u043e\u0440 \u0434\u0432\u0430\u0447.mp3"
   },
   {
-    "id": 19,
+    "id": 20,
     "title": "\u0440\u0438 \u0441\u0435 \u0439\u043b",
     "author": "neverlane",
     "cover": "/covers/track-by-neverlane_new.jpg",
@@ -161,7 +169,7 @@ export const Songs = [
     "song": "/audio/\u0440\u0438 \u0441\u0435 \u0439\u043b.mp3"
   },
   {
-    "id": 20,
+    "id": 21,
     "title": "\u0443\u043c\u043e\u043b\u044f\u044e",
     "author": "neverlane",
     "cover": "/covers/track-by-neverlane_new.jpg",
@@ -169,7 +177,7 @@ export const Songs = [
     "song": "/audio/\u0443\u043c\u043e\u043b\u044f\u044e.mp3"
   },
   {
-    "id": 21,
+    "id": 22,
     "title": "\u044f \u0436\u0441\u0435\u0440",
     "author": "neverlane",
     "cover": "/covers/track-by-neverlane_new.jpg",
@@ -177,7 +185,7 @@ export const Songs = [
     "song": "/audio/\u044f \u0436\u0441\u0435\u0440.mp3"
   },
   {
-    "id": 22,
+    "id": 23,
     "title": "\u044f \u0441\u043a\u0430\u0447\u0430\u043b \u043b\u0443\u0430 \u043a\u0430\u043a \u0435\u0433\u043e \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c",
     "author": "neverlane",
     "cover": "/covers/track-by-neverlane_new.jpg",
