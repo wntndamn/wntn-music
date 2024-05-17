@@ -33,3 +33,4 @@ jobs:
           git checkout production
           git fetch origin
           git merge origin/master
+          git push
