@@ -1,9 +1,10 @@
 import os
 import json
 
+
 def main():
     result = []
-    for id, filename in enumerate(os.listdir("public\\audio")):
+    for id, filename in enumerate(os.listdir("public/audio")):
         print()
         result.append(
             {
