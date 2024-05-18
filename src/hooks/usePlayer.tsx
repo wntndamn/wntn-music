@@ -6,7 +6,7 @@ interface PlayerProviderProps {
 
 interface PlayerContextProps {
   song: number;
-  setSong: (arg: number) => void;
+  setSong: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const PlayerContext = React.createContext({} as PlayerContextProps);
