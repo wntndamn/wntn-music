@@ -12,6 +12,8 @@ const Player = () => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [duration, setDuration] = useState<number>(0);
   const [currnetTime, setCurrentTime] = useState<number>(0);
+  const svol = localStorage.getItem('wntn-music-volume');
+  const [volume, setVolume] = useState<number>(svol ? +svol : 100);
 
   const audioPlayer = useRef<HTMLAudioElement | null>(null);
   const progressBar = useRef<HTMLDivElement | null>(null);
@@ -42,6 +44,26 @@ const Player = () => {
       };
     }
   }, []);
+
+  useEffect(() => {
+    if (audioPlayer.current) {
+      audioPlayer.current.onended = () => {
+        setSong((song) => (song + 1) % Songs.length);
+      }
+    }
+  }, [audioPlayer, setSong, song]);
+
+  useEffect(() => {
+    if (audioPlayer.current) {
+      audioPlayer.current.volume = volume / 100;
+    }
+
+    const timeout = setTimeout(() => {
+      localStorage.setItem('wntn-music-volume', String(volume));
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [volume]);
 
   const calculateTime = (secs: number) => {
     const minutes = Math.floor(secs / 60);
@@ -78,9 +100,10 @@ const Player = () => {
   const onVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
     if (audioPlayer.current) {
-      audioPlayer.current!.volume = Number(newValue) / 100;
+      setVolume(Number(newValue));
     }
   };
+
 
   return <div className='fixed bottom-0 left-0 w-full'>
     <div className="relative flex flex-col items-center w-full h-4 gap-2 overflow-hidden">
@@ -99,8 +122,8 @@ const Player = () => {
         <div>{calculateTime(duration)}</div>
       </div>
     </div>
-    <div className='w-full h-16 bg-blue-400 flex items-center justify-between px-6 py-2'>
-      <div className='flex items-center justify-start gap-4 h-full'>
+    <div className='w-full h-auto bg-blue-400 flex flex-col gap-4 md:gap-0 md:flex-row items-center justify-between px-6 py-2'>
+      <div className='w-full flex items-center justify-start gap-4 h-full'>
         <div className="flex items-center justify-center gap-2">
           <span className="flex items-center justify-center w-1/3">
             {Songs[song].id > 0 ? (
@@ -130,14 +153,14 @@ const Player = () => {
           </span>
         </div>
         <div className="flex items-center gap-4 h-full">
-          <img src={Songs[song].cover} className="rounded-2xl aspect-square h-full" />
-          <div className="flex flex-col items-start justify-center w-3/5 overflow-hidden whitespace-nowrap">
+          <img src={Songs[song].cover} className="rounded-2xl aspect-square h-12" />
+          <div className="flex flex-col items-start justify-center overflow-hidden whitespace-nowrap">
             <h2 className="text-xl text-black font-bold w-full">{Songs[song].title}</h2>
             <h3 className="text-md text-white">{Songs[song].author}</h3>
           </div>
         </div>
       </div>
-      <input className='w-16' type="range" min={0} max={100} onChange={e => onVolumeChange(e)} />
+      <input className='w-16' type="range" value={volume} min={0} max={100} onChange={e => onVolumeChange(e)} />
     </div>
   </div>;
 };
