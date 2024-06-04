@@ -1,4 +1,4 @@
-/** This file is generated at 2024-06-01 06:58:32.804990 by generate-songs-ts.py. PLEASE DO NOT EDIT */
+/** This file is generated at 2024-06-04 18:23:13.951110 by generate-songs-ts.py. PLEASE DO NOT EDIT */
 export const Songs = [
   {
     "id": "c8437030cb93cfb4e6fc846e0f99835c2ac71d87a822ab9ecf94488d5f656eb6",
@@ -231,6 +231,14 @@ export const Songs = [
     "cover": "/covers/roulse420/blokk.jpg",
     "decription": "wntn music <3",
     "song": "/audio/roulse420/blokk.mp3"
+  },
+  {
+    "id": "815abce8d5c20c1fc8bc74370ba0686d957186cc774cde34ba3a1dfa88d61732",
+    "title": "got them",
+    "author": "roulse420",
+    "cover": "/covers/roulse420/got them.jpg",
+    "decription": "wntn music <3",
+    "song": "/audio/roulse420/got them.mp3"
   },
   {
     "id": "3aaeecb43f12492cdf3d756737530c5c70e4665ba1c514afd94ad02c7a166ddb",
