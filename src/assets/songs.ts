@@ -1,4 +1,4 @@
-/** This file is generated at 2024-06-15 08:25:17.389774 by generate-songs-ts.py. PLEASE DO NOT EDIT */
+/** This file is generated at 2024-06-15 19:14:42.004057 by generate-songs-ts.py. PLEASE DO NOT EDIT */
 export const Songs = [
   {
     "id": "c8437030cb93cfb4e6fc846e0f99835c2ac71d87a822ab9ecf94488d5f656eb6",
@@ -263,5 +263,13 @@ export const Songs = [
     "cover": "/covers/roulse420/stack overflow.jpg",
     "decription": "wntn music <3",
     "song": "/audio/roulse420/stack overflow.mp3"
+  },
+  {
+    "id": "ab0fdd1dec4a6de5afb5e96435ac9c167edfb7d610e3980d37367b772ced597e",
+    "title": "FuckThePolice",
+    "author": "roulse420",
+    "cover": "/covers/roulse420/FuckThePolice.jpg",
+    "decription": "wntn music <3",
+    "song": "/audio/roulse420/FuckThePolice.mp3"
   }
 ];
