@@ -1,4 +1,4 @@
-/** This file is generated at 2024-07-16 19:56:54.267518 by generate-songs-ts.py. PLEASE DO NOT EDIT */
+/** This file is generated at 2024-07-19 19:19:28.071472 by generate-songs-ts.py. PLEASE DO NOT EDIT */
 export const Songs = [
   {
     "id": "7de166d001c671d312cb878869e8a7dfd8a8ef5f5144f79a124a290085423f85",
@@ -119,6 +119,14 @@ export const Songs = [
     "cover": "/covers/neverlane/default.jpg",
     "decription": "wntn music <3",
     "song": "/audio/neverlane/\u0434\u043b\u044f \u0442\u0435\u0431\u044f 2.mp3"
+  },
+  {
+    "id": "49064ece2e80e0daa9d336d8e07dce83768f908c6f24b1c7bfc30783030a9d86",
+    "title": "cheboksary",
+    "author": "neverlane",
+    "cover": "/covers/neverlane/default.jpg",
+    "decription": "wntn music <3",
+    "song": "/audio/neverlane/cheboksary.mp3"
   },
   {
     "id": "78cb167728a984c907896e004595e04aef901af844443bf9cdbfbc489c9dbc36",
