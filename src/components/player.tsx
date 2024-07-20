@@ -29,11 +29,14 @@ const Player = () => {
   };
 
   useEffect(() => {
-    if (Songs.length > 0) setSong(Songs[0].id);
-  }, []);
+    if (Songs.length > 0 && !song) setSong(Songs[0].id);
+  }, [setSong, song]);
 
   useEffect(() => {
+    console.log("audioPlayer: current", audioPlayer.current);
     if (audioPlayer.current) {
+      playAudio();
+      audioPlayer.current.volume = volume / 100;
       audioPlayer.current.onloadedmetadata = () => {
         const seconds = Math.floor(audioPlayer.current?.duration || 0);
         setDuration(seconds);
@@ -42,21 +45,16 @@ const Player = () => {
           audioPlayer.current!.play();
         });
       }
-    }
-  }, [audioPlayer]);
-
-  useEffect(() => {
-    if (audioPlayer.current) {
-      playAudio();
       audioPlayer.current.onended = () => {
-        const nextIndex = !!song ? song.index+1 % Songs.length : 0;
+        const nextIndex = song ? song.index+1 % Songs.length : 0;
         setSong(Songs[nextIndex].id);
       }
     }
-  }, [audioPlayer, setSong, song?.id]);
+  }, [setSong, song, song?.id]);
 
   useEffect(() => {
     if (audioPlayer.current) {
+      console.log("set volume", volume, `before:${audioPlayer.current.volume}`);
       audioPlayer.current.volume = volume / 100;
     }
 
