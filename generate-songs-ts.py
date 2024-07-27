@@ -1,4 +1,5 @@
 import json
+import operator
 import os
 from datetime import datetime
 from hashlib import sha256
@@ -16,7 +17,9 @@ def main():
             if not os.path.isfile(track_path) or not track.endswith(".mp3"):
                 continue
             cover = os.path.join("covers", "default.jpg")
-            if os.path.exists(os.path.join("public", "covers", artist, track[0:-4] + ".jpg")):
+            if os.path.exists(
+                os.path.join("public", "covers", artist, track[0:-4] + ".jpg")
+            ):
                 cover = os.path.join("covers", artist, track[0:-4] + ".jpg")
             elif os.path.exists(
                 os.path.join("public", "covers", artist, "default.jpg")
@@ -32,6 +35,7 @@ def main():
                     "song": f"/audio/{artist}/{track}",
                 }
             )
+        result.sort(key=operator.itemgetter("title"))
     with open("src/assets/songs.ts", "w") as f:
         f.write(
             f"/** This file is generated at {datetime.now()} by generate-songs-ts.py. PLEASE DO NOT EDIT */\nexport const Songs = {json.dumps(result, indent=2)};"
