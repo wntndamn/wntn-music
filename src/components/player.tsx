@@ -26,7 +26,11 @@ const Player = () => {
   };
 
   useEffect(() => {
-    if (Songs.length > 0 && !song) setSong(Songs[0].id);
+    if (Songs.length > 0 && !song) {
+      const sharedSongId = location.pathname.startsWith("/p/") ? location.pathname.split("/p/")[1] : null;
+      const id = sharedSongId && Songs.findIndex((s) => s.id === sharedSongId) !== -1 ? sharedSongId : Songs[0].id;
+      setSong(id);
+    }
   }, [setSong, song]);
 
   useEffect(() => {
