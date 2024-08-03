@@ -10,22 +10,22 @@ const Library = () => {
   };
   
   return (
-    <>
-      <h2 className='text-1xl font-bold'>all songs</h2>
-      <ul className="flex flex-col gap-1 w-full lg:w-2/3">
+    <div className="mx-auto w-full lg:w-2/3">
+      <h2 className="text-2xl font-bold mb-4 dark:text-white">all songs</h2>
+      <ul className="flex flex-col gap-1">
           {Songs.map((item) => (
             <li
               key={item.id}
               onClick={() => pickSound(item.id)}
-              className={`w-full h-16 rounded-lg flex items-center justify-between gap-4 py-2 px-4 transition-all duration-200 cursor-pointer ease-in-out hover:bg-gray-200 ${
-                item.id == song?.id ? "bg-blue-200" : "bg-white"
+              className={`w-full h-16 rounded-lg flex items-center justify-between gap-4 py-2 px-4 transition-all duration-200 cursor-pointer ease-in-out border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 ${
+                item.id == song?.id ? "bg-gray-200 dark:bg-gray-700" : "bg-gray-100 dark:bg-gray-800"
               }`}
             >
               <div className={"flex items-center gap-4 h-full"}>
                 <img src={item.cover} className="aspect-square h-full rounded-lg" />
                 <span>
-                  <h4 className="text-lg">{item.title}</h4>
-                  <h5 className="text-gray-500 text-md">{item.author}</h5>
+                  <h4 className="text-lg font-bold dark:text-white">{item.title}</h4>
+                  <h5 className="text-gray-500 dark:text-gray-400 text-md">{item.author}</h5>
                 </span>
               </div>
               <div>
@@ -34,13 +34,13 @@ const Library = () => {
                   navigator.clipboard.writeText(`${location.origin}/p/${item.id}`);
                   alert("copied to clipboard");
                 }}>
-                  <GrCopy />  
+                  <GrCopy className="stroke-black dark:stroke-white" />  
                 </button>
               </div>
             </li>
           ))}
         </ul>
-    </>
+    </div>
   );
 };
 

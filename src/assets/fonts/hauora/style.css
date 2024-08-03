@@ -1,0 +1,55 @@
+@font-face {
+  font-family: 'Hauora';
+  src: url('Hauora-Bold.woff') format('woff'),
+       url('Hauora-Bold.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Hauora';
+  src: url('Hauora-ExtraBold.woff') format('woff'),
+       url('Hauora-ExtraBold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Hauora';
+  src: url('Hauora-ExtraLight.woff') format('woff'),
+       url('Hauora-ExtraLight.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Hauora';
+  src: url('Hauora-Light.woff') format('woff'),
+       url('Hauora-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Hauora';
+  src: url('Hauora-Medium.woff') format('woff'),
+       url('Hauora-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Hauora';
+  src: url('Hauora-Regular.woff') format('woff'),
+       url('Hauora-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Hauora';
+  src: url('Hauora-SemiBold.woff') format('woff'),
+       url('Hauora-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+}

@@ -1,3 +1,5 @@
+@import url("./assets/fonts/hauora/style.css");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,4 +11,5 @@ html, body, #root {
 body {
     overflow-x: hidden;
     box-sizing: border-box;
+    font-family: Hauora;
 }
