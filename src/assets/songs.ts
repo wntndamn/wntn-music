@@ -1,4 +1,4 @@
-/** This file is generated at 2024-08-03 15:37:35.899354 by generate-songs-ts.py. PLEASE DO NOT EDIT */
+/** This file is generated at 2024-08-07 10:37:00.552039 by generate-songs-ts.py. PLEASE DO NOT EDIT */
 export const Songs = [
   {
     "id": "c8437030cb93cfb4e6fc846e0f99835c2ac71d87a822ab9ecf94488d5f656eb6",
@@ -7,6 +7,14 @@ export const Songs = [
     "cover": "/covers/neverlane/5\u0433.jpg",
     "decription": "wntn music <3",
     "song": "/audio/neverlane/5\u0433.mp3"
+  },
+  {
+    "id": "d1b9cef17b1c0ea1afb8b4fac64299cbeb471dc2c57e8ecc9b84d64696e0cd54",
+    "title": "@rice  backend sqlite",
+    "author": "neverlane",
+    "cover": "/covers/neverlane/default.jpg",
+    "decription": "wntn music <3",
+    "song": "/audio/neverlane/@rice - backend sqlite.mp3"
   },
   {
     "id": "ab0fdd1dec4a6de5afb5e96435ac9c167edfb7d610e3980d37367b772ced597e",
