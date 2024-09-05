@@ -1,4 +1,4 @@
-/** This file is generated at 2024-08-07 10:37:00.552039 by generate-songs-ts.py. PLEASE DO NOT EDIT */
+/** This file is generated at 2024-09-05 18:09:31.516241 by generate-songs-ts.py. PLEASE DO NOT EDIT */
 export const Songs = [
   {
     "id": "c8437030cb93cfb4e6fc846e0f99835c2ac71d87a822ab9ecf94488d5f656eb6",
@@ -167,6 +167,14 @@ export const Songs = [
     "cover": "/covers/neverlane/default.jpg",
     "decription": "wntn music <3",
     "song": "/audio/neverlane/\u0432\u0438\u043c\u0438\u0433\u0442\u0430 \u0444\u0440\u043e\u043d\u0442\u0435\u043d\u0434 \u0430\u0442 \u043d\u0435\u0432\u0435\u0440\u043b\u0435\u0439.mp3"
+  },
+  {
+    "id": "034f6c9d1cbf464ea7648d2cf3c5f56c69c5d7e677323f2b0a7a2755bc5c7a44",
+    "title": "\u0434\u0435\u0442\u043a\u0430 \u043a\u0430\u043a \u0442\u0432\u0430\u0438 \u0434\u0438\u043b\u0430",
+    "author": "neverlane",
+    "cover": "/covers/neverlane/default.jpg",
+    "decription": "wntn music <3",
+    "song": "/audio/neverlane/\u0434\u0435\u0442\u043a\u0430 \u043a\u0430\u043a \u0442\u0432\u0430\u0438 \u0434\u0438\u043b\u0430.mp3"
   },
   {
     "id": "2c1f3e2adc6e54a8d53e2e8d0801158e571515f8087fbcd5e5c4021e204215b0",
