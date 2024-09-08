@@ -1,4 +1,4 @@
-/** This file is generated at 2024-09-05 18:09:31.516241 by generate-songs-ts.py. PLEASE DO NOT EDIT */
+/** This file is generated at 2024-09-08 11:22:39.415214 by generate-songs-ts.py. PLEASE DO NOT EDIT */
 export const Songs = [
   {
     "id": "c8437030cb93cfb4e6fc846e0f99835c2ac71d87a822ab9ecf94488d5f656eb6",
@@ -143,6 +143,14 @@ export const Songs = [
     "cover": "/covers/neverlane/default.jpg",
     "decription": "wntn music <3",
     "song": "/audio/neverlane/w1nt3r.mp3"
+  },
+  {
+    "id": "427a752702b2f3519c521ed613af02947dd8abdc514a356c0c203339129031bb",
+    "title": "youlovecache",
+    "author": "neverlane",
+    "cover": "/covers/neverlane/default.jpg",
+    "decription": "wntn music <3",
+    "song": "/audio/neverlane/youlovecache.mp3"
   },
   {
     "id": "ccfe0c555c980630f95535dd0933c2b5b22ecc2c12b715fca1c711721c58e704",
