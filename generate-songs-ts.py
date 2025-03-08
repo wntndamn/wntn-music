@@ -40,6 +40,8 @@ def main():
         f.write(
             f"/** This file is generated at {datetime.now()} by generate-songs-ts.py. PLEASE DO NOT EDIT */\nexport const Songs = {json.dumps(result, indent=2)};"
         )
+    with open("public/track-list.json", "w") as f:
+        f.write(json.dumps(result, indent=4))
 
 
 if __name__ == "__main__":
