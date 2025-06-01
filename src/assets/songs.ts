@@ -1,4 +1,4 @@
-/** This file is generated at 2025-03-08 20:24:24.496370 by generate-songs-ts.py. PLEASE DO NOT EDIT */
+/** This file is generated at 2025-06-01 09:57:06.270499 by generate-songs-ts.py. PLEASE DO NOT EDIT */
 export const Songs = [
   {
     "id": "c8437030cb93cfb4e6fc846e0f99835c2ac71d87a822ab9ecf94488d5f656eb6",
@@ -129,6 +129,14 @@ export const Songs = [
     "song": "/audio/neverlane/saynolua.mp3"
   },
   {
+    "id": "2ac35ea4f318912a004042f7230f855e36620dbe67de6cc68b9c8d8a58573b8b",
+    "title": "snova",
+    "author": "neverlane",
+    "cover": "/covers/neverlane/default.jpg",
+    "decription": "wntn music <3",
+    "song": "/audio/neverlane/snova.mp3"
+  },
+  {
     "id": "bdebfb65a2b8f79f9e5127239f0b262e19ebf6c94f2fff368c7242fee08f22ff",
     "title": "sobaka_rice",
     "author": "neverlane",
@@ -151,6 +159,14 @@ export const Songs = [
     "cover": "/covers/neverlane/default.jpg",
     "decription": "wntn music <3",
     "song": "/audio/neverlane/w1nt3r.mp3"
+  },
+  {
+    "id": "80d79dfc617ccdf3437f9facc6f4e1c1cbe0ed4d4b6fbf5fab7da0eb2f0f69ae",
+    "title": "ya ne hochu znat",
+    "author": "neverlane",
+    "cover": "/covers/neverlane/default.jpg",
+    "decription": "wntn music <3",
+    "song": "/audio/neverlane/ya ne hochu znat.mp3"
   },
   {
     "id": "427a752702b2f3519c521ed613af02947dd8abdc514a356c0c203339129031bb",
