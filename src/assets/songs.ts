@@ -1,4 +1,4 @@
-/** This file is generated at 2025-07-19 10:45:23.369825 by generate-songs-ts.py. PLEASE DO NOT EDIT */
+/** This file is generated at 2025-07-19 11:01:43.573317 by generate-songs-ts.py. PLEASE DO NOT EDIT */
 export const Songs = [
   {
     "id": "dc3f4385eb8679b1f6fd0e53450b2965eb7dde4ff10e106896746fcb65d6dbb8",
@@ -111,6 +111,14 @@ export const Songs = [
     "cover": "/covers/neverlane/default.jpg",
     "decription": "wntn music <3",
     "song": "/audio/neverlane/droppetprojects.mp3"
+  },
+  {
+    "id": "ef934be7dca0953973c3079091f6c09e936dfc9eb2b6f5c596ac589a100f9b84",
+    "title": "droppetprojects_normal",
+    "author": "neverlane",
+    "cover": "/covers/neverlane/default.jpg",
+    "decription": "wntn music <3",
+    "song": "/audio/neverlane/droppetprojects_normal.mp3"
   },
   {
     "id": "815abce8d5c20c1fc8bc74370ba0686d957186cc774cde34ba3a1dfa88d61732",
