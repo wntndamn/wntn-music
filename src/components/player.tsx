@@ -3,8 +3,7 @@ import { BsFillPlayFill, BsPauseFill } from "react-icons/bs";
 import { GrNext, GrPrevious } from "react-icons/gr";
 import { Songs } from "../assets/songs";
 import { usePlayer } from "../hooks/usePlayer";
-import { Song } from '../types';
-import { slugifyRussian, slugifySong } from '../utils/sluggify';
+import { slugifySong } from '../utils/sluggify';
 
 const Player = () => {
   const { song, setSong } = usePlayer();

@@ -1,4 +1,4 @@
-import { Songs } from "./assets/songs";
+import type { Songs } from "./assets/songs";
 
 export type Song = typeof Songs[0];
 
