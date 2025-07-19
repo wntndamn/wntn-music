@@ -49,6 +49,7 @@ const Player = () => {
           if (result) id = result.id;
         }
         setSong(id);
+        playAudio();
       }
     }
   }, [setSong, song]);

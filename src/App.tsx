@@ -17,7 +17,9 @@ function App() {
   return (
     <div className="min-h-full relative flex flex-col items-start justify-start w-full py-4 px-4 gap-3 dark:bg-gray-900">
       <div className="flex flex-col items-center justify-center w-full gap-4 py-4">
-        <h1 className="text-3xl font-extrabold w-full text-center dark:text-white">@wntn music</h1>
+        <h1 className="text-3xl font-extrabold w-full text-center dark:text-white">wntn.music</h1>
+        <h1 className="text-3xl font-extrabold w-full text-center dark:text-white">the mostly worst music in the world!</h1>
+        <h1 className="text-3xl font-extrabold w-full text-center dark:text-white">our tgch with changes: <a href="//t.me/wntnmusic" className="text-red-500">@wntnmusic</a></h1>
         <button className="p-2 rounded-lg border border-gray-500 bg-black text-white dark:bg-gray-800" onClick={() => {
           document.documentElement.classList.toggle("dark");
           localStorage.setItem("theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
