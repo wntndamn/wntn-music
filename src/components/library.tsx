@@ -1,6 +1,6 @@
-import { usePlayer } from "../hooks/usePlayer";
+import { GrCopy, GrDownload } from "react-icons/gr";
 import { Songs } from "../assets/songs";
-import { GrCopy } from "react-icons/gr";
+import { usePlayer } from "../hooks/usePlayer";
 import { slugifySong } from '../utils/sluggify';
 
 const Library = () => {
@@ -8,6 +8,23 @@ const Library = () => {
 
   const pickSound = (id: string) => {
     setSong(id);
+  };
+
+  const downloadSong = async (audioUrl: string, title: string) => {
+    try {
+      const response = await fetch(audioUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${title}.mp3`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading song:", error);
+    }
   };
   
   return (
@@ -29,13 +46,19 @@ const Library = () => {
                   <h5 className="text-gray-500 dark:text-gray-400 text-md">{item.author}</h5>
                 </span>
               </div>
-              <div>
+              <div className="flex gap-4">
                 <button type="button" onClick={(e) => {
                   e.stopPropagation();
                   navigator.clipboard.writeText(`${location.origin}/p/${slugifySong(item)}`);
                   alert("copied to clipboard");
                 }}>
-                  <GrCopy className="stroke-black dark:stroke-white" />  
+                  <GrCopy className="stroke-black dark:stroke-white" />
+                </button>
+                <button type="button" onClick={(e) => {
+                  e.stopPropagation();
+                  downloadSong(item.song, item.title);
+                }}>
+                  <GrDownload className="stroke-black dark:stroke-white" />
                 </button>
               </div>
             </li>
