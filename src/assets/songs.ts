@@ -1,4 +1,4 @@
-/** This file is generated at 2025-10-01 13:54:28.759066 by generate-songs-ts.py. PLEASE DO NOT EDIT */
+/** This file is generated at 2026-02-06 08:57:54.726134 by generate-songs-ts.py. PLEASE DO NOT EDIT */
 export const Songs = [
   {
     "id": "dc3f4385eb8679b1f6fd0e53450b2965eb7dde4ff10e106896746fcb65d6dbb8",
@@ -95,6 +95,14 @@ export const Songs = [
     "cover": "/covers/neverlane/dimabro.jpg",
     "decription": "wntn music <3",
     "song": "/audio/neverlane/dimabro.mp3"
+  },
+  {
+    "id": "7d912854c6c541677a3cda9cb5546e79766be88aecd6d5b47dd827d6c7239784",
+    "title": "dj lua",
+    "author": "neverlane",
+    "cover": "/covers/neverlane/default.jpg",
+    "decription": "wntn music <3",
+    "song": "/audio/neverlane/dj lua.mp3"
   },
   {
     "id": "31a62ec4fbe5cbaf2d5ba259215d39d68378f699dfefdd2ae3fa5008cac12674",
