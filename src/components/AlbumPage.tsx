@@ -110,6 +110,7 @@ export default function AlbumPage() {
       {album.description && (
         <p className="max-w-2xl whitespace-pre-wrap text-sm text-muted">{album.description}</p>
       )}
+      {album.copyright && <p className="text-xs text-muted">{album.copyright}</p>}
 
       {album.tracks.length === 0 ? (
         <p className="text-sm text-muted">треков пока нет</p>

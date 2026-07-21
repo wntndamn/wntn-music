@@ -56,6 +56,7 @@ export const albums = pgTable("albums", {
   releaseDate: text("release_date"), // ISO yyyy-mm-dd
   description: text("description"),
   genres: text("genres").array().notNull().default([]),
+  copyright: text("copyright"), // e.g. "℗ 2026 Artist Name"
   type: albumType("type").notNull().default("album"),
 });
 

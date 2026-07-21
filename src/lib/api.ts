@@ -264,6 +264,7 @@ export type AlbumDetail = {
   releaseDate: string | null;
   description: string | null;
   genres: string[];
+  copyright: string | null;
   type: "album" | "ep" | "single";
   artistId: string;
   artistName: string;
@@ -291,6 +292,7 @@ export const albumApi = {
       releaseDate?: string | null;
       description?: string | null;
       genres?: string[];
+      copyright?: string | null;
       type?: "album" | "ep" | "single";
     },
   ) => api<{ ok: true }>(`/albums/${id}`, { method: "PUT", body: b }),

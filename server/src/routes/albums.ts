@@ -33,6 +33,7 @@ albumRoutes.get("/:id", async (c) => {
       releaseDate: albums.releaseDate,
       description: albums.description,
       genres: albums.genres,
+      copyright: albums.copyright,
       type: albums.type,
       artistId: albums.artistId,
       artistName: artists.name,
@@ -114,6 +115,7 @@ const updateSchema = z.object({
     .optional(),
   description: z.string().max(2000).nullable().optional(),
   genres: z.array(z.string().trim().min(1).max(30)).max(10).optional(),
+  copyright: z.string().max(200).nullable().optional(),
   type: z.enum(["album", "ep", "single"]).optional(),
 });
 

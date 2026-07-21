@@ -274,6 +274,7 @@ function AlbumManageRow({
     releaseDate: "",
     genres: "",
     description: "",
+    copyright: "",
   });
   const [status, setStatus] = useState<string | null>(null);
   const { confirm } = useDialogs();
@@ -289,6 +290,7 @@ function AlbumManageRow({
           releaseDate: al.releaseDate ?? "",
           genres: al.genres.join(", "),
           description: al.description ?? "",
+          copyright: al.copyright ?? "",
         });
       })
       .catch(() => {});
@@ -307,6 +309,7 @@ function AlbumManageRow({
         releaseDate: draft.releaseDate || null,
         genres: parseGenres(draft.genres),
         description: draft.description.trim() || null,
+        copyright: draft.copyright.trim() || null,
       });
       setStatus("сохранено ✓");
       onChange();
@@ -407,6 +410,11 @@ function AlbumManageRow({
             placeholder="описание альбома"
             rows={3}
             className="rounded-card border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+          />
+          <Input
+            value={draft.copyright}
+            onChange={(v) => setDraft((d) => ({ ...d, copyright: v }))}
+            placeholder="копирайт (℗ 2026 Артист)"
           />
           <div className="flex items-center gap-3">
             <button
