@@ -1,0 +1,59 @@
+import { Link } from "react-router-dom";
+import { IconPlayerPlayFilled, IconPlayerPauseFilled } from "@tabler/icons-react";
+import { slugify, type Track } from "../lib/tracks";
+import { usePlayer } from "../hooks/usePlayer";
+import LikeButton from "./LikeButton";
+
+export default function TrackCard({ track, queue }: { track: Track; queue: Track[] }) {
+  const { current, isPlaying, play, toggle } = usePlayer();
+  const active = current?.id === track.id;
+
+  return (
+    <div className="group flex flex-col rounded-card bg-surface p-2 transition-colors hover:bg-surface-hover">
+      <div className="relative aspect-square overflow-hidden rounded-md">
+        <div className="absolute right-1 top-1 z-10 rounded-full bg-bg/60 backdrop-blur">
+          <LikeButton trackId={track.id} size={16} />
+        </div>
+        <img
+          src={track.cover}
+          alt={track.title}
+          loading="lazy"
+          className="h-full w-full object-cover"
+          onError={(e) => {
+            const img = e.currentTarget;
+            if (!img.src.endsWith("/covers/default.jpg")) img.src = "/covers/default.jpg";
+          }}
+        />
+        <button
+          onClick={() => (active ? toggle() : play(track, queue))}
+          data-active={active}
+          aria-label={active && isPlaying ? "Пауза" : "Играть"}
+          className="absolute bottom-2 right-2 grid h-11 w-11 place-items-center rounded-full bg-accent text-white opacity-0 shadow-lg transition-opacity hover:bg-accent-hover group-hover:opacity-100 data-[active=true]:opacity-100"
+        >
+          {active && isPlaying ? (
+            <IconPlayerPauseFilled size={20} />
+          ) : (
+            <IconPlayerPlayFilled size={20} />
+          )}
+        </button>
+      </div>
+      <div className="px-1 pt-2">
+        <Link
+          to={`/track/${track.id}`}
+          target="_blank"
+          rel="noreferrer"
+          className="block truncate text-sm font-medium hover:underline"
+          title={track.title}
+        >
+          {track.title}
+        </Link>
+        <Link
+          to={`/artist/${slugify(track.author)}`}
+          className="block truncate text-xs text-muted hover:underline"
+        >
+          {track.author}
+        </Link>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,100 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: wntn
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wntn}
+      POSTGRES_DB: wntn
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wntn -d wntn"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Local S3-compatible object storage (drop-in for R2/MinIO/AWS).
+  s3:
+    image: rustfs/rustfs:latest
+    restart: unless-stopped
+    command: ["/data"]
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY_ID:-wntn}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_ACCESS_KEY:-wntn-dev-secret}
+    volumes:
+      - s3-data:/data
+    ports:
+      - "9000:9000"
+
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      s3:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgres://wntn:${POSTGRES_PASSWORD:-wntn}@db:5432/wntn
+      REDIS_URL: redis://redis:6379
+      SESSION_SECRET: ${SESSION_SECRET:?set a long random secret in .env}
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      ADMIN_USERNAMES: ${ADMIN_USERNAMES:-}
+      # S3-compatible storage. S3_ENDPOINT must be reachable by BOTH the api
+      # container and the browser (presigned URLs are host-bound). On a VPS,
+      # front the s3 service with a domain (e.g. https://s3.your.domain) and set
+      # S3_ENDPOINT to that. For R2/AWS: set the provider endpoint + FORCE_PATH_STYLE=false.
+      # api talks to s3 internally; presigned URLs use the browser-facing endpoint
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://s3:9000}
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-wntn}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-wntn-dev-secret}
+      S3_BUCKET: ${S3_BUCKET:-wntn-audio}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+      PORT: 3000
+    # ./public mounted so `compose run api pnpm seed` can read the existing mp3s
+    volumes:
+      - ./public:/app/public:ro
+    # Caddy is the prod entry (proxies /api). Port published for local dev/smoke tests.
+    ports:
+      - "3000:3000"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+
+volumes:
+  db-data:
+  redis-data:
+  s3-data:
+  caddy-data:

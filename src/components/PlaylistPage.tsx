@@ -1,0 +1,286 @@
+import { useEffect, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import {
+  IconTrash,
+  IconPlayerPlayFilled,
+  IconPencil,
+  IconLock,
+  IconWorld,
+} from "@tabler/icons-react";
+import { useAuth } from "../hooks/useAuth";
+import { useTracks } from "../hooks/useTracks";
+import { usePlayer } from "../hooks/usePlayer";
+import { playlistApi, meApi } from "../lib/api";
+import { useDialogs } from "./Dialogs";
+import type { Track } from "../lib/tracks";
+
+type Row = { id: string; title: string; cover: string | null };
+
+export default function PlaylistPage() {
+  const { id } = useParams();
+  const { user } = useAuth();
+  const { tracks } = useTracks();
+  const { play } = usePlayer();
+  const navigate = useNavigate();
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState<string | null>(null);
+  const [plCover, setPlCover] = useState<string | null>(null);
+  const [isPublic, setIsPublic] = useState(true);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [rows, setRows] = useState<Row[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    playlistApi
+      .get(id)
+      .then((p) => {
+        setTitle(p.title);
+        setDescription(p.description ?? null);
+        setPlCover(p.cover);
+        setIsPublic(p.isPublic);
+        setOwnerId(p.userId);
+        setRows(p.tracks);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "ошибка"));
+  }, [id]);
+
+  // resolve playable Track objects (with audio url) from the full catalog
+  const playable = rows
+    .map((r) => tracks.find((t) => t.id === r.id))
+    .filter((t): t is Track => Boolean(t));
+
+  const remove = async (trackId: string) => {
+    if (!id) return;
+    try {
+      await playlistApi.removeTrack(id, trackId);
+      setRows((rs) => rs.filter((r) => r.id !== trackId));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  if (error) return <p className="font-mono text-sm text-accent">{error}</p>;
+  const isOwner = Boolean(user && ownerId === user.id);
+  const cover = plCover ?? rows[0]?.cover ?? "/covers/default.jpg";
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-end gap-4">
+        <img src={cover} alt="" className="h-28 w-28 rounded-card object-cover" />
+        <div className="flex min-w-0 flex-col gap-1">
+          <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted">
+            {isPublic ? <IconWorld size={13} /> : <IconLock size={13} />}
+            {isPublic ? "публичный плейлист" : "приватный плейлист"}
+          </p>
+          <h1 className="truncate font-display text-3xl">{title || "плейлист"}</h1>
+          {description && <p className="max-w-lg text-sm text-muted">{description}</p>}
+          <p className="text-sm text-muted">{rows.length} треков</p>
+          <div className="mt-1 flex items-center gap-2">
+            <button
+              onClick={() => playable[0] && play(playable[0], playable)}
+              disabled={!playable.length}
+              className="flex items-center gap-2 rounded-card bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+            >
+              <IconPlayerPlayFilled size={16} /> слушать
+            </button>
+            {isOwner && (
+              <button
+                onClick={() => setEditing((e) => !e)}
+                className="flex items-center gap-1.5 rounded-card border border-border bg-surface px-3 py-2 text-sm hover:bg-surface-hover"
+              >
+                <IconPencil size={15} /> редактировать
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {isOwner && editing && id && (
+        <EditPanel
+          id={id}
+          title={title}
+          description={description}
+          isPublic={isPublic}
+          onSaved={(t, p, d) => {
+            setTitle(t);
+            setIsPublic(p);
+            setDescription(d);
+            setEditing(false);
+          }}
+          onCover={(c) => setPlCover(c)}
+          onDeleted={() => navigate("/library")}
+        />
+      )}
+
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted">пусто</p>
+      ) : (
+        <ul className="flex flex-col">
+          {rows.map((r, i) => {
+            const t = tracks.find((x) => x.id === r.id);
+            return (
+              <li
+                key={r.id}
+                className="group flex items-center gap-3 rounded-md px-2 py-2 hover:bg-surface"
+              >
+                <span className="w-5 text-right font-mono text-xs text-muted">{i + 1}</span>
+                <img
+                  src={r.cover ?? "/covers/default.jpg"}
+                  alt=""
+                  className="h-10 w-10 rounded object-cover"
+                />
+                <Link
+                  to={`/track/${r.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 truncate text-sm hover:underline"
+                >
+                  {r.title}
+                </Link>
+                {t && (
+                  <button
+                    onClick={() => play(t, playable)}
+                    aria-label="играть"
+                    className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-surface-hover hover:text-text"
+                  >
+                    <IconPlayerPlayFilled size={16} />
+                  </button>
+                )}
+                {isOwner && (
+                  <button
+                    onClick={() => remove(r.id)}
+                    aria-label="удалить"
+                    className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-surface-hover hover:text-accent"
+                  >
+                    <IconTrash size={16} />
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function EditPanel({
+  id,
+  title,
+  description,
+  isPublic,
+  onSaved,
+  onCover,
+  onDeleted,
+}: {
+  id: string;
+  title: string;
+  description: string | null;
+  isPublic: boolean;
+  onSaved: (title: string, isPublic: boolean, description: string | null) => void;
+  onCover: (cover: string) => void;
+  onDeleted: () => void;
+}) {
+  const [draftTitle, setDraftTitle] = useState(title);
+  const [draftDescription, setDraftDescription] = useState(description ?? "");
+  const [draftPublic, setDraftPublic] = useState(isPublic);
+  const [status, setStatus] = useState<string | null>(null);
+  const { confirm } = useDialogs();
+
+  const save = async () => {
+    if (!draftTitle.trim()) return;
+    setStatus("сохранение…");
+    try {
+      const d = draftDescription.trim() || null;
+      await meApi.renamePlaylist(id, {
+        title: draftTitle.trim(),
+        isPublic: draftPublic,
+        description: d,
+      });
+      onSaved(draftTitle.trim(), draftPublic, d);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "ошибка");
+    }
+  };
+
+  const uploadCover = async (file: File) => {
+    setStatus("загрузка обложки…");
+    try {
+      const r = await playlistApi.uploadCover(id, file);
+      onCover(`${r.cover}?t=${Date.now()}`);
+      setStatus("обложка загружена ✓");
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "ошибка");
+    }
+  };
+
+  const removeAll = async () => {
+    if (!(await confirm(`удалить плейлист «${title}»?`, "удалить"))) return;
+    await playlistApi.remove(id).catch(() => {});
+    onDeleted();
+  };
+
+  return (
+    <div className="flex max-w-md flex-col gap-4 rounded-card border border-border bg-surface p-4">
+      <section className="flex flex-col gap-2">
+        <h2 className="text-xs uppercase tracking-wide text-muted">о плейлисте</h2>
+        <input
+          value={draftTitle}
+          onChange={(e) => setDraftTitle(e.target.value)}
+          placeholder="название"
+          className="rounded-card border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
+        />
+        <textarea
+          value={draftDescription}
+          onChange={(e) => setDraftDescription(e.target.value)}
+          placeholder="описание"
+          rows={3}
+          className="rounded-card border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
+        />
+        <label className="w-fit cursor-pointer rounded-card border border-border px-3 py-1.5 text-sm hover:bg-surface-hover">
+          загрузить обложку
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void uploadCover(f);
+              e.target.value = "";
+            }}
+          />
+        </label>
+        <label className="flex w-fit cursor-pointer items-center gap-2 text-sm text-muted">
+          <input
+            type="checkbox"
+            checked={!draftPublic}
+            onChange={(e) => setDraftPublic(!e.target.checked)}
+            className="accent-accent"
+          />
+          приватный — виден только мне
+        </label>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => void save()}
+            className="w-fit rounded-card bg-text px-3 py-2 text-sm font-medium text-bg"
+          >
+            сохранить
+          </button>
+          {status && <span className="font-mono text-xs text-muted">{status}</span>}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-2 border-t border-border pt-3">
+        <h2 className="text-xs uppercase tracking-wide text-muted">опасная зона</h2>
+        <button
+          onClick={() => void removeAll()}
+          className="flex w-fit items-center gap-1.5 rounded-card border border-accent/40 px-3 py-2 text-sm text-accent hover:bg-surface-hover"
+        >
+          <IconTrash size={15} /> удалить плейлист
+        </button>
+      </section>
+    </div>
+  );
+}

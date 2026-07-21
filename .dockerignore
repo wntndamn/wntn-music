@@ -1,0 +1,10 @@
+node_modules
+server/node_modules
+dist
+# audio is served from S3 now; api gets it via the ./public bind mount for seeding
+public/audio
+.git
+.omc
+.serena
+.env
+*.log

@@ -1,24 +1,66 @@
-@import url("./assets/fonts/hauora/style.css");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
+/* Design tokens — derived from cobalt.tools / lunaria language */
+@layer base {
+  :root {
+    --bg: #ffffff;
+    --surface: #f4f4f4;
+    --surface-hover: #ededed;
+    --surface-press: #e8e8e8;
+    --border: rgba(0, 0, 0, 0.07);
+    --text: #161616;
+    --muted: #75757e;
+    --accent: #ed2236;
+    --accent-hover: #d61c2e;
+  }
+
+  .dark {
+    --bg: #0d0d0d;
+    --surface: #191919;
+    --surface-hover: #242424;
+    --surface-press: #2a2a2a;
+    --border: rgba(255, 255, 255, 0.07);
+    --text: #e1e1e1;
+    --muted: #818181;
+    --accent: #ed2236;
+    --accent-hover: #f0303f;
+  }
+
+  html,
+  body,
+  #root {
     height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  ::selection {
+    background: var(--text);
+    color: var(--bg);
+  }
+
+  /* crisp pixel-feel for display/mono, the cobalt signature */
+  .font-display,
+  .font-mono {
+    -webkit-font-smoothing: none;
+    font-smooth: never;
+  }
 }
 
-body {
-    overflow-x: hidden;
-    box-sizing: border-box;
-    font-family: Hauora;
+/* thin, unobtrusive scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-
-input[type="range"]::-webkit-slider-thumb {
-    @apply border-0 outline-0 size-4 rounded-full appearance-none bg-gray-600 dark:bg-white;
-    
-}
-
-input[type="range"]::-moz-range-thumb {
-    @apply border-0 outline-0 size-4 rounded-full appearance-none bg-gray-600 dark:bg-white;
+::-webkit-scrollbar-thumb {
+  background: var(--surface-hover);
+  border-radius: 4px;
 }

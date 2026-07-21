@@ -1,0 +1,11 @@
+# DOMAIN=localhost locally; your real domain on the VPS (Caddy auto-fetches TLS).
+{$DOMAIN:localhost} {
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
