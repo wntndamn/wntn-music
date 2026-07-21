@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { bodyLimit } from "hono/body-limit";
-import { eq, and, ne } from "drizzle-orm";
+import { eq, and, ne, sql } from "drizzle-orm";
 import { db } from "../db";
 import { tracks, trackVersions, artists, lyrics } from "../db/schema";
 import { requireAuth, isAdminRole } from "../auth";
@@ -181,6 +181,23 @@ manageRoutes.put("/tracks/:id", async (c) => {
     })
     .safeParse(await c.req.json().catch(() => null));
   if (!body.success) return c.json({ error: "invalid input" }, 400);
+
+  // newly attached to an album -> append at the end instead of sitting at null forever
+  if (body.data.albumId) {
+    const current = await db
+      .select({ albumId: tracks.albumId })
+      .from(tracks)
+      .where(eq(tracks.id, trackId))
+      .limit(1);
+    if (current[0]?.albumId !== body.data.albumId) {
+      const last = await db
+        .select({ n: sql<number>`coalesce(max(${tracks.trackNumber}), 0)` })
+        .from(tracks)
+        .where(eq(tracks.albumId, body.data.albumId));
+      (body.data as { trackNumber?: number }).trackNumber = (last[0]?.n ?? 0) + 1;
+    }
+  }
+
   await db.update(tracks).set(body.data).where(eq(tracks.id, trackId));
   return c.json({ ok: true });
 });

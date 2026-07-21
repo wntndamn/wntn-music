@@ -268,12 +268,14 @@ export type AlbumDetail = {
   artistId: string;
   artistName: string;
   artistSlug: string;
+  canManage: boolean;
   tracks: {
     id: string;
     title: string;
     cover: string | null;
     plays: number;
     explicit: boolean;
+    trackNumber: number | null;
     song: string | null;
   }[];
 };
@@ -293,6 +295,8 @@ export const albumApi = {
     },
   ) => api<{ ok: true }>(`/albums/${id}`, { method: "PUT", body: b }),
   remove: (id: string) => api<{ ok: true }>(`/albums/${id}`, { method: "DELETE" }),
+  reorder: (id: string, trackIds: string[]) =>
+    api<{ ok: true }>(`/albums/${id}/reorder`, { method: "PUT", body: { trackIds } }),
   uploadCover: (id: string, file: File) => {
     const fd = new FormData();
     fd.append("file", file);

@@ -71,6 +71,7 @@ export const tracks = pgTable("tracks", {
   duration: integer("duration"),
   genres: text("genres").array().notNull().default([]),
   explicit: boolean("explicit").notNull().default(false),
+  trackNumber: integer("track_number"),
   plays: integer("plays").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   primaryVersionId: text("primary_version_id"),

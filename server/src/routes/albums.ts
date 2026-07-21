@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, and, asc, sql } from "drizzle-orm";
 import { bodyLimit } from "hono/body-limit";
 import { db } from "../db";
 import { albums, tracks, artists } from "../db/schema";
-import { requireAuth, isAdminRole } from "../auth";
+import { requireAuth, isAdminRole, currentUser } from "../auth";
 import { putObject } from "../storage";
 import { readImageForm } from "../upload";
 import { newId, param, type AppEnv } from "../types";
@@ -51,12 +51,20 @@ albumRoutes.get("/:id", async (c) => {
       cover: tracks.cover,
       plays: tracks.plays,
       explicit: tracks.explicit,
+      trackNumber: tracks.trackNumber,
       primaryVersionId: tracks.primaryVersionId,
     })
     .from(tracks)
-    .where(eq(tracks.albumId, id));
+    .where(eq(tracks.albumId, id))
+    // untracked-order tracks (no manual sort yet) sink to the bottom by createdAt
+    .orderBy(asc(sql`${tracks.trackNumber} is null`), asc(tracks.trackNumber), asc(tracks.createdAt));
+
+  const me = await currentUser(c);
+  const canManageAlbum = me ? isAdminRole(me.role) || (await canManage(album.artistId, me.id, me.role)) : false;
+
   return c.json({
     ...album,
+    canManage: canManageAlbum,
     tracks: albumTracks.map(({ primaryVersionId, ...t }) => ({
       ...t,
       song: primaryVersionId ? `/api/audio/${primaryVersionId}` : null,
@@ -136,6 +144,27 @@ albumRoutes.post("/:id/cover", requireAuth, bodyLimit({ maxSize: 10 * 1024 * 102
     .set({ coverKey, cover: `/api/cover/album/${album.id}` })
     .where(eq(albums.id, album.id));
   return c.json({ cover: `/api/cover/album/${album.id}` });
+});
+
+// PUT /api/albums/:id/reorder — body { trackIds: [...] } in the desired order,
+// sets trackNumber = index+1 for each. Any track not listed keeps its number.
+albumRoutes.put("/:id/reorder", requireAuth, async (c) => {
+  const album = await getAlbum(param(c, "id"));
+  if (!album) return c.json({ error: "not found" }, 404);
+  if (!(await canManage(album.artistId, c.get("userId"), c.get("role"))))
+    return c.json({ error: "forbidden" }, 403);
+  const body = z.object({ trackIds: z.array(z.string()).min(1) }).safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return c.json({ error: "invalid input" }, 400);
+
+  await Promise.all(
+    body.data.trackIds.map((trackId, i) =>
+      db
+        .update(tracks)
+        .set({ trackNumber: i + 1 })
+        .where(and(eq(tracks.id, trackId), eq(tracks.albumId, album.id))),
+    ),
+  );
+  return c.json({ ok: true });
 });
 
 // DELETE /api/albums/:id — tracks stay (albumId -> null via FK)

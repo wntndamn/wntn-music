@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { IconPlayerPlayFilled, IconHeadphones } from "@tabler/icons-react";
+import { IconPlayerPlayFilled, IconHeadphones, IconChevronUp, IconChevronDown } from "@tabler/icons-react";
 import { albumApi, type AlbumDetail } from "../lib/api";
 import { usePlayer } from "../hooks/usePlayer";
 import type { Track } from "../lib/tracks";
@@ -30,6 +30,17 @@ export default function AlbumPage() {
       </div>
     );
   if (!album) return <p className="font-mono text-sm text-muted">загрузка…</p>;
+
+  const move = async (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= album.tracks.length) return;
+    const order = album.tracks.map((t) => t.id);
+    [order[i], order[j]] = [order[j], order[i]];
+    const reordered = [...album.tracks];
+    [reordered[i], reordered[j]] = [reordered[j], reordered[i]];
+    setAlbum({ ...album, tracks: reordered });
+    await albumApi.reorder(album.id, order).catch(() => {});
+  };
 
   const playable: Track[] = album.tracks
     .filter((t) => t.song)
@@ -136,6 +147,26 @@ export default function AlbumPage() {
                 <span className="flex items-center gap-1 font-mono text-xs text-muted">
                   <IconHeadphones size={13} /> {t.plays}
                 </span>
+                {album.canManage && (
+                  <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      onClick={() => void move(i, -1)}
+                      disabled={i === 0}
+                      aria-label="выше"
+                      className="grid h-4 w-6 place-items-center text-muted hover:text-text disabled:opacity-30"
+                    >
+                      <IconChevronUp size={13} />
+                    </button>
+                    <button
+                      onClick={() => void move(i, 1)}
+                      disabled={i === album.tracks.length - 1}
+                      aria-label="ниже"
+                      className="grid h-4 w-6 place-items-center text-muted hover:text-text disabled:opacity-30"
+                    >
+                      <IconChevronDown size={13} />
+                    </button>
+                  </div>
+                )}
                 {pt && (
                   <button
                     onClick={() => play(pt, playable)}
