@@ -126,10 +126,19 @@ artistRoutes.post("/:slug/claim", requireAuth, async (c) => {
   return c.json({ id, status: "pending" });
 });
 
+// bare "t.me/foo" is friendlier to type than a full https:// URL
+const linkSchema = z
+  .string()
+  .trim()
+  .max(300)
+  .transform((s) => (/^https?:\/\//i.test(s) ? s : `https://${s}`))
+  .refine((s) => z.string().url().safeParse(s).success, "invalid URL");
+
 const updateSchema = z.object({
   name: z.string().min(1).max(64).optional(),
   bio: z.string().max(2000).optional(),
   genres: z.array(z.string().trim().min(1).max(30)).max(10).optional(),
+  links: z.array(linkSchema).max(10).optional(),
   headerImage: z.string().url().optional(),
 });
 

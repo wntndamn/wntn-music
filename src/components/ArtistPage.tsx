@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { IconId, IconPlayerPlayFilled, IconHeadphones } from "@tabler/icons-react";
+import {
+  IconId,
+  IconPlayerPlayFilled,
+  IconHeadphones,
+  IconWorld,
+  IconBrandTelegram,
+  IconBrandInstagram,
+  IconBrandX,
+  IconBrandYoutube,
+} from "@tabler/icons-react";
 import { useTracks } from "../hooks/useTracks";
 import { useAuth } from "../hooks/useAuth";
 import { usePlayer } from "../hooks/usePlayer";
@@ -8,6 +17,21 @@ import { slugify } from "../lib/tracks";
 import { artistApi, type ArtistProfile } from "../lib/api";
 import TrackGrid, { GridSkeleton } from "./TrackGrid";
 import FollowButton from "./FollowButton";
+
+function linkIcon(url: string) {
+  const host = (() => {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return "";
+    }
+  })();
+  if (host.includes("t.me") || host.includes("telegram")) return <IconBrandTelegram size={16} />;
+  if (host.includes("instagram")) return <IconBrandInstagram size={16} />;
+  if (host.includes("x.com") || host.includes("twitter")) return <IconBrandX size={16} />;
+  if (host.includes("youtube")) return <IconBrandYoutube size={16} />;
+  return <IconWorld size={16} />;
+}
 
 export default function ArtistPage() {
   const { slug } = useParams();
@@ -55,6 +79,22 @@ export default function ArtistPage() {
             </div>
           )}
           {profile?.bio && <p className="max-w-lg text-sm text-muted">{profile.bio}</p>}
+          {(profile?.links?.length ?? 0) > 0 && (
+            <div className="flex items-center gap-2">
+              {profile!.links.map((l) => (
+                <a
+                  key={l}
+                  href={l}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={l}
+                  className="grid h-8 w-8 place-items-center rounded-full border border-border bg-surface text-muted hover:bg-surface-hover hover:text-text"
+                >
+                  {linkIcon(l)}
+                </a>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted">{mine.length} треков</span>
             {profile && (

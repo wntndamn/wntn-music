@@ -155,20 +155,29 @@ function ProfileEditor({ artist }: { artist: MyArtist }) {
   const [name, setName] = useState(artist.name);
   const [bio, setBio] = useState(artist.bio ?? "");
   const [genres, setGenres] = useState("");
+  const [links, setLinks] = useState("");
   const [avatar, setAvatar] = useState(artist.avatar ?? null);
   const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
     artistApi
       .get(artist.slug)
-      .then((p) => setGenres(p.genres.join(", ")))
+      .then((p) => {
+        setGenres(p.genres.join(", "));
+        setLinks(p.links.join(", "));
+      })
       .catch(() => {});
   }, [artist.slug]);
 
   const save = async () => {
     setStatus("сохранение…");
     try {
-      await artistApi.update(artist.slug, { name, bio, genres: parseGenres(genres) });
+      await artistApi.update(artist.slug, {
+        name,
+        bio,
+        genres: parseGenres(genres),
+        links: parseGenres(links),
+      });
       setStatus("сохранено ✓");
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "ошибка");
@@ -200,6 +209,11 @@ function ProfileEditor({ artist }: { artist: MyArtist }) {
       </div>
       <Input value={name} onChange={setName} placeholder="имя" />
       <Input value={genres} onChange={setGenres} placeholder="жанры через запятую" />
+      <Input
+        value={links}
+        onChange={setLinks}
+        placeholder="ссылки через запятую (сайт, телеграм, инста…)"
+      />
       <textarea
         value={bio}
         onChange={(e) => setBio(e.target.value)}

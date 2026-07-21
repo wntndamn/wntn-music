@@ -42,6 +42,7 @@ export const artists = pgTable("artists", {
   avatarKey: text("avatar_key"),
   headerImage: text("header_image"),
   genres: text("genres").array().notNull().default([]),
+  links: text("links").array().notNull().default([]), // arbitrary URLs: site, telegram, instagram...
 });
 
 export const albums = pgTable("albums", {

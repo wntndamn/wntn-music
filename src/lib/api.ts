@@ -167,6 +167,7 @@ export type ArtistProfile = {
   bio: string | null;
   avatar: string | null;
   genres: string[];
+  links: string[];
   userId: string | null;
   albums: { id: string; title: string; cover?: string | null; type?: string }[];
   tracks: LibraryTrack[];
@@ -185,7 +186,7 @@ export const artistApi = {
       method: "POST",
       body: { message },
     }),
-  update: (slug: string, b: { name?: string; bio?: string; genres?: string[] }) =>
+  update: (slug: string, b: { name?: string; bio?: string; genres?: string[]; links?: string[] }) =>
     api<{ ok: true }>(`/artists/${slug}`, { method: "PUT", body: b }),
 };
 
