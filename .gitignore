@@ -29,3 +29,6 @@ dist-ssr
 .omc
 .serena
 .playwright-mcp
+
+# local env backups
+.env.backup*
