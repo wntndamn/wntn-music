@@ -17,6 +17,7 @@ async function api<T>(
 }
 
 export type Role = "user" | "admin" | "root";
+export type PlaybackSync = "off" | "tabs" | "full";
 
 export type User = {
   id: string;
@@ -24,6 +25,7 @@ export type User = {
   displayName: string | null;
   avatar: string | null;
   role?: Role;
+  playbackSync?: PlaybackSync;
   isAdmin?: boolean;
   isRoot?: boolean;
 };
@@ -116,6 +118,8 @@ export const meApi = {
     id: string,
     b: { title?: string; isPublic?: boolean; description?: string | null },
   ) => api<{ ok: true }>(`/me/playlists/${id}`, { method: "PUT", body: b }),
+  updateSettings: (b: { playbackSync: PlaybackSync }) =>
+    api<{ ok: true }>("/me/settings", { method: "PUT", body: b }),
   uploadAvatar: (file: File) => {
     const fd = new FormData();
     fd.append("file", file);

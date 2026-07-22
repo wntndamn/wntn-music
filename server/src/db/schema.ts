@@ -18,6 +18,8 @@ export const versionKind = pgEnum("version_kind", [
 ]);
 export const claimStatus = pgEnum("claim_status", ["pending", "approved", "rejected"]);
 export const userRole = pgEnum("user_role", ["user", "admin", "root"]);
+// how playback is kept in sync across the user's open tabs
+export const playbackSync = pgEnum("playback_sync", ["off", "tabs", "full"]);
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -28,6 +30,7 @@ export const users = pgTable("users", {
   avatar: text("avatar"),
   avatarKey: text("avatar_key"),
   role: userRole("role").notNull().default("user"),
+  playbackSync: playbackSync("playback_sync").notNull().default("tabs"),
   bannedAt: timestamp("banned_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

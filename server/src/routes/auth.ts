@@ -101,6 +101,7 @@ authRoutes.get("/me", async (c) => {
       displayName: users.displayName,
       avatar: users.avatar,
       role: users.role,
+      playbackSync: users.playbackSync,
     })
     .from(users)
     .where(eq(users.id, me.id))

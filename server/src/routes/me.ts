@@ -36,6 +36,16 @@ meRoutes.post("/avatar", bodyLimit({ maxSize: 10 * 1024 * 1024 }), async (c) => 
   return c.json({ avatar: `/api/avatar/user/${userId}` });
 });
 
+// PUT /api/me/settings — account preferences (currently cross-tab playback sync)
+meRoutes.put("/settings", async (c) => {
+  const body = z
+    .object({ playbackSync: z.enum(["off", "tabs", "full"]) })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return c.json({ error: "invalid input" }, 400);
+  await db.update(users).set(body.data).where(eq(users.id, c.get("userId")));
+  return c.json({ ok: true });
+});
+
 // GET /api/me/library — liked tracks + own playlists + followed artists + saved albums
 meRoutes.get("/library", async (c) => {
   const userId = c.get("userId");

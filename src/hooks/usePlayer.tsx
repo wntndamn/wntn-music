@@ -7,7 +7,15 @@ import {
   type ReactNode,
 } from "react";
 import type { Track } from "../lib/tracks";
-import { trackApi } from "../lib/api";
+import { trackApi, type PlaybackSync } from "../lib/api";
+
+// Cross-tab playback sync. "tabs" only stops the other tabs when this one
+// starts (no two tabs playing at once); "full" also mirrors queue + position
+// so every tab shows the same thing.
+const SYNC_CHANNEL = "wntn-player";
+type SyncMessage =
+  | { type: "playing"; from: string }
+  | { type: "state"; from: string; queue: Track[]; index: number; time: number };
 
 type PlayerState = {
   queue: Track[];
@@ -28,6 +36,8 @@ type PlayerState = {
   playNext: (track: Track) => void;
   removeFromQueue: (i: number) => void;
   clearQueue: () => void;
+  syncMode: PlaybackSync;
+  setSyncMode: (m: PlaybackSync) => void;
 };
 
 const Ctx = createContext<PlayerState | null>(null);
@@ -44,8 +54,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVol] = useState(1);
+  // cached locally so the very first message isn't missed while /auth/me loads
+  const [syncMode, setSyncMode] = useState<PlaybackSync>(
+    () => (localStorage.getItem("playbackSync") as PlaybackSync | null) ?? "tabs",
+  );
 
   const current = index >= 0 ? queue[index] ?? null : null;
+
+  const tabId = useRef(Math.random().toString(36).slice(2));
+  const channelRef = useRef<BroadcastChannel | null>(null);
+  // handlers read these through refs so the channel is only wired up once
+  const syncRef = useRef(syncMode);
+  syncRef.current = syncMode;
+  const applyingRemote = useRef(false);
 
   // ended-handler and media-session action handlers need the latest next()/prev();
   // keep them in refs to dodge stale closures (registered once, called later)
@@ -74,12 +95,64 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // one channel for the tab's lifetime; incoming messages act on the audio element
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const ch = new BroadcastChannel(SYNC_CHANNEL);
+    channelRef.current = ch;
+    ch.onmessage = (e: MessageEvent<SyncMessage>) => {
+      const msg = e.data;
+      if (!msg || msg.from === tabId.current || syncRef.current === "off") return;
+      if (msg.type === "playing") {
+        audioRef.current?.pause();
+        return;
+      }
+      if (msg.type === "state" && syncRef.current === "full") {
+        applyingRemote.current = true;
+        setQueue(msg.queue);
+        setIndex(msg.index);
+        // the other tab keeps the audio; mirror position without stealing playback
+        if (audioRef.current && Math.abs(audioRef.current.currentTime - msg.time) > 2)
+          audioRef.current.currentTime = msg.time;
+      }
+    };
+    return () => {
+      ch.close();
+      channelRef.current = null;
+    };
+  }, []);
+
+  const post = (msg: SyncMessage) => {
+    if (syncRef.current === "off") return;
+    channelRef.current?.postMessage(msg);
+  };
+
+  // announce playback so other tabs can stop (and mirror state in "full" mode)
+  useEffect(() => {
+    if (!isPlaying) return;
+    post({ type: "playing", from: tabId.current });
+    if (syncRef.current === "full")
+      post({
+        type: "state",
+        from: tabId.current,
+        queue,
+        index,
+        time: audioRef.current?.currentTime ?? 0,
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying, index]);
+
   // load + play whenever the current track changes
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !current) return;
     audio.src = current.song;
     audio.volume = volume;
+    // a track that arrived from another tab is mirrored, not taken over
+    if (applyingRemote.current) {
+      applyingRemote.current = false;
+      return;
+    }
     void audio.play().catch(() => {});
     void trackApi.play(current.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -260,6 +333,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     playNext,
     removeFromQueue,
     clearQueue,
+    syncMode,
+    setSyncMode: (m: PlaybackSync) => {
+      setSyncMode(m);
+      localStorage.setItem("playbackSync", m);
+    },
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
