@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   IconTrash,
   IconPlayerPlayFilled,
@@ -10,6 +10,7 @@ import {
   IconHeartFilled,
   IconChevronUp,
   IconChevronDown,
+  IconPlus,
 } from "@tabler/icons-react";
 import { useAuth } from "../hooks/useAuth";
 import { useTracks } from "../hooks/useTracks";
@@ -24,7 +25,7 @@ export default function PlaylistPage() {
   const { id } = useParams();
   const { user } = useAuth();
   const { tracks } = useTracks();
-  const { play } = usePlayer();
+  const { play, addToQueue, current, toggle } = usePlayer();
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState<string | null>(null);
@@ -157,20 +158,27 @@ export default function PlaylistPage() {
                 key={r.id}
                 className="group flex items-center gap-3 rounded-md px-2 py-2 hover:bg-surface"
               >
-                <span className="w-5 text-right font-mono text-xs text-muted">{i + 1}</span>
+                <span className="w-5 text-right font-mono text-xs text-muted">
+                  {current?.id === r.id ? "▶" : i + 1}
+                </span>
                 <img
                   src={r.cover ?? "/covers/default.jpg"}
                   alt=""
                   className="h-10 w-10 rounded object-cover"
                 />
-                <Link
-                  to={`/track/${r.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex-1 truncate text-sm hover:underline"
+                {/* clicking a row plays it and makes the playlist the queue */}
+                <button
+                  onClick={() => {
+                    if (!t) return;
+                    if (current?.id === r.id) toggle();
+                    else play(t, playable);
+                  }}
+                  disabled={!t}
+                  data-current={current?.id === r.id}
+                  className="min-w-0 flex-1 truncate text-left text-sm hover:underline disabled:opacity-50 disabled:hover:no-underline data-[current=true]:font-medium data-[current=true]:text-accent"
                 >
                   {r.title}
-                </Link>
+                </button>
                 {isOwner && (
                   <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
                     <button
@@ -193,11 +201,12 @@ export default function PlaylistPage() {
                 )}
                 {t && (
                   <button
-                    onClick={() => play(t, playable)}
-                    aria-label="играть"
-                    className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-surface-hover hover:text-text"
+                    onClick={() => addToQueue(t)}
+                    aria-label="в очередь"
+                    title="добавить в очередь"
+                    className="grid h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-opacity hover:bg-surface-hover hover:text-text group-hover:opacity-100"
                   >
-                    <IconPlayerPlayFilled size={16} />
+                    <IconPlus size={16} />
                   </button>
                 )}
                 {isOwner && (

@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { IconPlayerPlayFilled, IconPlayerPauseFilled, IconHeadphones } from "@tabler/icons-react";
+import {
+  IconPlayerPlayFilled,
+  IconPlayerPauseFilled,
+  IconHeadphones,
+  IconPlus,
+  IconArrowBarToRight,
+} from "@tabler/icons-react";
 import { slugify, type Track } from "../lib/tracks";
 import { trackApi, meApi, type TrackDetail } from "../lib/api";
 import { usePlayer } from "../hooks/usePlayer";
@@ -21,7 +27,7 @@ const KIND_RU: Record<string, string> = {
 
 export default function TrackPage() {
   const { id } = useParams();
-  const { current, isPlaying, play, toggle } = usePlayer();
+  const { current, isPlaying, play, toggle, addToQueue, playNext } = usePlayer();
   const { user } = useAuth();
   const [detail, setDetail] = useState<TrackDetail | null>(null);
   const [versionId, setVersionId] = useState<string | null>(null);
@@ -62,16 +68,18 @@ export default function TrackPage() {
   const active = current?.id === detail.id;
   const cover = detail.cover ?? "/covers/default.jpg";
 
+  const asTrack = (song: string): Track => ({
+    id: detail.id,
+    title: detail.title,
+    author: detail.author,
+    cover,
+    description: "",
+    song,
+  });
+
   const playSelected = () => {
     if (!version?.url) return;
-    const t: Track = {
-      id: detail.id,
-      title: detail.title,
-      author: detail.author,
-      cover,
-      description: "",
-      song: version.url,
-    };
+    const t = asTrack(version.url);
     play(t, [t]);
   };
 
@@ -146,6 +154,22 @@ export default function TrackPage() {
           <div className="grid h-11 w-11 place-items-center rounded-card border border-border bg-surface">
             <LikeButton trackId={detail.id} size={20} />
           </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => version?.url && playNext(asTrack(version.url))}
+            disabled={!version?.url}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-card border border-border bg-surface px-3 py-2 text-sm hover:bg-surface-hover disabled:opacity-50"
+          >
+            <IconArrowBarToRight size={16} /> следующим
+          </button>
+          <button
+            onClick={() => version?.url && addToQueue(asTrack(version.url))}
+            disabled={!version?.url}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-card border border-border bg-surface px-3 py-2 text-sm hover:bg-surface-hover disabled:opacity-50"
+          >
+            <IconPlus size={16} /> в очередь
+          </button>
         </div>
         <AddToPlaylist trackId={detail.id} />
       </div>

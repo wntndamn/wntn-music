@@ -7,6 +7,7 @@ import {
   IconChevronDown,
   IconHeart,
   IconHeartFilled,
+  IconPlus,
 } from "@tabler/icons-react";
 import { albumApi, meApi, type AlbumDetail } from "../lib/api";
 import { usePlayer } from "../hooks/usePlayer";
@@ -17,7 +18,7 @@ const TYPE_RU: Record<string, string> = { album: "альбом", ep: "EP", singl
 
 export default function AlbumPage() {
   const { id } = useParams();
-  const { play } = usePlayer();
+  const { play, addToQueue, current, toggle } = usePlayer();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [album, setAlbum] = useState<AlbumDetail | null>(null);
@@ -149,19 +150,30 @@ export default function AlbumPage() {
                 key={t.id}
                 className="group flex items-center gap-3 rounded-md px-2 py-2 hover:bg-surface"
               >
-                <span className="w-5 text-right font-mono text-xs text-muted">{i + 1}</span>
+                <span className="w-5 text-right font-mono text-xs text-muted">
+                  {current?.id === t.id ? "▶" : (t.trackNumber ?? i + 1)}
+                </span>
                 <img
                   src={t.cover ?? album.cover ?? "/covers/default.jpg"}
                   alt=""
                   className="h-10 w-10 rounded object-cover"
                 />
-                <Link
-                  to={`/track/${t.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-sm hover:underline"
+                {/* clicking a row plays it and makes the album the queue */}
+                <button
+                  onClick={() => {
+                    if (!pt) return;
+                    if (current?.id === t.id) toggle();
+                    else play(pt, playable);
+                  }}
+                  disabled={!pt}
+                  className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left text-sm hover:underline disabled:opacity-50 disabled:hover:no-underline"
                 >
-                  {t.title}
+                  <span
+                    data-current={current?.id === t.id}
+                    className="truncate data-[current=true]:font-medium data-[current=true]:text-accent"
+                  >
+                    {t.title}
+                  </span>
                   {t.explicit && (
                     <span
                       title="explicit"
@@ -170,10 +182,20 @@ export default function AlbumPage() {
                       E
                     </span>
                   )}
-                </Link>
+                </button>
                 <span className="flex items-center gap-1 font-mono text-xs text-muted">
                   <IconHeadphones size={13} /> {t.plays}
                 </span>
+                {pt && (
+                  <button
+                    onClick={() => addToQueue(pt)}
+                    aria-label="в очередь"
+                    title="добавить в очередь"
+                    className="grid h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-opacity hover:bg-surface-hover hover:text-text group-hover:opacity-100"
+                  >
+                    <IconPlus size={16} />
+                  </button>
+                )}
                 {album.canManage && (
                   <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
                     <button
@@ -193,15 +215,6 @@ export default function AlbumPage() {
                       <IconChevronDown size={13} />
                     </button>
                   </div>
-                )}
-                {pt && (
-                  <button
-                    onClick={() => play(pt, playable)}
-                    aria-label="играть"
-                    className="grid h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-opacity hover:bg-surface-hover hover:text-text group-hover:opacity-100"
-                  >
-                    <IconPlayerPlayFilled size={16} />
-                  </button>
                 )}
               </li>
             );
