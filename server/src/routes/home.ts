@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq, desc, count } from "drizzle-orm";
+import { eq, desc, asc, count, sql } from "drizzle-orm";
 import { db } from "../db";
 import { artists, albums, tracks, playlists } from "../db/schema";
 
@@ -32,7 +32,13 @@ homeRoutes.get("/", async (c) => {
         artistSlug: artists.slug,
       })
       .from(albums)
-      .innerJoin(artists, eq(albums.artistId, artists.id)),
+      .innerJoin(artists, eq(albums.artistId, artists.id))
+      // newest first; albums with no release date sink below dated ones
+      .orderBy(
+        asc(sql`${albums.releaseDate} is null`),
+        desc(albums.releaseDate),
+        desc(albums.year),
+      ),
     db
       .select({
         id: playlists.id,

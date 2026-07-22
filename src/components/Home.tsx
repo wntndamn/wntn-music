@@ -5,6 +5,13 @@ import { homeApi, type HomeArtist, type HomeAlbum, type HomePlaylist } from "../
 import TrackGrid, { GridSkeleton } from "./TrackGrid";
 
 const ALBUM_TYPE_RU: Record<string, string> = { album: "альбом", ep: "EP", single: "сингл" };
+const NEW_RELEASE_DAYS = 30;
+
+const isNewRelease = (releaseDate: string | null) => {
+  if (!releaseDate) return false;
+  const ms = Date.now() - new Date(releaseDate).getTime();
+  return ms >= 0 && ms < NEW_RELEASE_DAYS * 24 * 60 * 60 * 1000;
+};
 
 export default function Home() {
   const { tracks, loading, error } = useTracks();
@@ -29,6 +36,7 @@ export default function Home() {
     [tracks],
   );
   const shown = artist ? tracks.filter((t) => t.author === artist) : tracks;
+  const newReleases = albums.filter((a) => isNewRelease(a.releaseDate));
 
   if (error)
     return <p className="font-mono text-sm text-accent">не загрузилось: {error}</p>;
@@ -66,35 +74,23 @@ export default function Home() {
         </section>
       )}
 
+      {newReleases.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="font-display text-xl">новые релизы</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {newReleases.map((al) => (
+              <AlbumCard key={al.id} album={al} isNew />
+            ))}
+          </div>
+        </section>
+      )}
+
       {albums.length > 0 && (
         <section className="flex flex-col gap-3">
           <h2 className="font-display text-xl">альбомы</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
             {albums.map((al) => (
-              <Link
-                key={al.id}
-                to={`/album/${al.id}`}
-                className="group flex flex-col rounded-card bg-surface p-2 transition-colors hover:bg-surface-hover"
-              >
-                <img
-                  src={al.cover ?? "/covers/default.jpg"}
-                  alt=""
-                  className="aspect-square w-full rounded-md object-cover"
-                  onError={(e) => {
-                    const img = e.currentTarget;
-                    if (!img.src.endsWith("/covers/default.jpg")) img.src = "/covers/default.jpg";
-                  }}
-                />
-                <div className="px-1 pt-2">
-                  <p className="truncate text-sm font-medium group-hover:underline">{al.title}</p>
-                  <p className="truncate text-xs text-muted">
-                    {ALBUM_TYPE_RU[al.type] ?? al.type}
-                    {(al.releaseDate ?? al.year) && ` · ${al.releaseDate?.slice(0, 4) ?? al.year}`}
-                    {" · "}
-                    {al.artistName}
-                  </p>
-                </div>
-              </Link>
+              <AlbumCard key={al.id} album={al} />
             ))}
           </div>
         </section>
@@ -142,6 +138,42 @@ export default function Home() {
         {loading ? <GridSkeleton /> : <TrackGrid tracks={shown} />}
       </section>
     </div>
+  );
+}
+
+function AlbumCard({ album, isNew }: { album: HomeAlbum; isNew?: boolean }) {
+  return (
+    <Link
+      to={`/album/${album.id}`}
+      className="group flex flex-col rounded-card bg-surface p-2 transition-colors hover:bg-surface-hover"
+    >
+      <div className="relative">
+        <img
+          src={album.cover ?? "/covers/default.jpg"}
+          alt=""
+          className="aspect-square w-full rounded-md object-cover"
+          onError={(e) => {
+            const img = e.currentTarget;
+            if (!img.src.endsWith("/covers/default.jpg")) img.src = "/covers/default.jpg";
+          }}
+        />
+        {isNew && (
+          <span className="absolute left-1.5 top-1.5 rounded-card bg-accent px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">
+            новое
+          </span>
+        )}
+      </div>
+      <div className="px-1 pt-2">
+        <p className="truncate text-sm font-medium group-hover:underline">{album.title}</p>
+        <p className="truncate text-xs text-muted">
+          {ALBUM_TYPE_RU[album.type] ?? album.type}
+          {(album.releaseDate ?? album.year) &&
+            ` · ${album.releaseDate?.slice(0, 4) ?? album.year}`}
+          {" · "}
+          {album.artistName}
+        </p>
+      </div>
+    </Link>
   );
 }
 
