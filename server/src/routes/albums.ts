@@ -3,7 +3,7 @@ import { z } from "zod";
 import { eq, and, asc, sql } from "drizzle-orm";
 import { bodyLimit } from "hono/body-limit";
 import { db } from "../db";
-import { albums, tracks, artists } from "../db/schema";
+import { albums, tracks, artists, savedAlbums } from "../db/schema";
 import { requireAuth, isAdminRole, currentUser } from "../auth";
 import { putObject } from "../storage";
 import { readImageForm } from "../upload";
@@ -62,10 +62,20 @@ albumRoutes.get("/:id", async (c) => {
 
   const me = await currentUser(c);
   const canManageAlbum = me ? isAdminRole(me.role) || (await canManage(album.artistId, me.id, me.role)) : false;
+  const saved = me
+    ? (
+        await db
+          .select({ userId: savedAlbums.userId })
+          .from(savedAlbums)
+          .where(and(eq(savedAlbums.userId, me.id), eq(savedAlbums.albumId, id)))
+          .limit(1)
+      ).length > 0
+    : false;
 
   return c.json({
     ...album,
     canManage: canManageAlbum,
+    saved,
     tracks: albumTracks.map(({ primaryVersionId, ...t }) => ({
       ...t,
       song: primaryVersionId ? `/api/audio/${primaryVersionId}` : null,

@@ -3,7 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { IconPlus, IconX, IconLock } from "@tabler/icons-react";
 import { useAuth } from "../hooks/useAuth";
 import { useTracks } from "../hooks/useTracks";
-import { meApi, playlistApi, type PlaylistMeta, type FollowedArtist } from "../lib/api";
+import {
+  meApi,
+  playlistApi,
+  type PlaylistMeta,
+  type FollowedArtist,
+  type SavedAlbum,
+} from "../lib/api";
 import TrackGrid, { GridSkeleton } from "./TrackGrid";
 import { useDialogs } from "./Dialogs";
 
@@ -13,6 +19,7 @@ export default function Library() {
   const navigate = useNavigate();
   const [playlists, setPlaylists] = useState<PlaylistMeta[]>([]);
   const [following, setFollowing] = useState<FollowedArtist[]>([]);
+  const [savedAlbums, setSavedAlbums] = useState<SavedAlbum[]>([]);
   const [newTitle, setNewTitle] = useState("");
   const [newPublic, setNewPublic] = useState(true);
   const { confirm } = useDialogs();
@@ -28,6 +35,7 @@ export default function Library() {
         .then((l) => {
           setPlaylists(l.playlists);
           setFollowing(l.following);
+          setSavedAlbums(l.savedAlbums);
         })
         .catch(() => {});
   }, [user]);
@@ -106,6 +114,35 @@ export default function Library() {
           </div>
         )}
       </section>
+
+      {savedAlbums.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="font-display text-xl">сохранённые альбомы</h2>
+          <div className="flex flex-wrap gap-3">
+            {savedAlbums.map((al) => (
+              <Link
+                key={al.id}
+                to={`/album/${al.id}`}
+                className="group flex w-32 shrink-0 flex-col rounded-card bg-surface p-2 transition-colors hover:bg-surface-hover"
+              >
+                <img
+                  src={al.cover ?? "/covers/default.jpg"}
+                  alt=""
+                  className="aspect-square w-full rounded-md object-cover"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (!img.src.endsWith("/covers/default.jpg")) img.src = "/covers/default.jpg";
+                  }}
+                />
+                <p className="truncate px-1 pt-2 text-sm font-medium group-hover:underline">
+                  {al.title}
+                </p>
+                <p className="truncate px-1 text-xs text-muted">{al.artistName}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {following.length > 0 && (
         <section className="flex flex-col gap-3">

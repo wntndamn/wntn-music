@@ -86,17 +86,29 @@ export type MyArtist = {
 };
 
 export type FollowedArtist = { slug: string; name: string; avatar: string | null };
+export type SavedAlbum = {
+  id: string;
+  title: string;
+  cover: string | null;
+  artistName: string;
+  artistSlug: string;
+};
 
 export const meApi = {
   library: () =>
-    api<{ likes: LibraryTrack[]; playlists: PlaylistMeta[]; following: FollowedArtist[] }>(
-      "/me/library",
-    ),
+    api<{
+      likes: LibraryTrack[];
+      playlists: PlaylistMeta[];
+      following: FollowedArtist[];
+      savedAlbums: SavedAlbum[];
+    }>("/me/library"),
   myArtist: () => api<{ artist: MyArtist | null }>("/me/artist"),
   toggleFollow: (artistId: string) =>
     api<{ following: boolean }>(`/me/follows/${artistId}`, { method: "POST" }),
   toggleLike: (trackId: string) =>
     api<{ liked: boolean }>(`/me/likes/${trackId}`, { method: "POST" }),
+  toggleSavedAlbum: (albumId: string) =>
+    api<{ saved: boolean }>(`/me/saved-albums/${albumId}`, { method: "POST" }),
   renamePlaylist: (
     id: string,
     b: { title?: string; isPublic?: boolean; description?: string | null },
@@ -271,6 +283,7 @@ export type AlbumDetail = {
   artistName: string;
   artistSlug: string;
   canManage: boolean;
+  saved: boolean;
   tracks: {
     id: string;
     title: string;

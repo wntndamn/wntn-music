@@ -3,7 +3,7 @@ import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { bodyLimit } from "hono/body-limit";
 import { db } from "../db";
-import { likes, playlists, tracks, artists, follows, users } from "../db/schema";
+import { likes, playlists, tracks, artists, follows, users, savedAlbums, albums } from "../db/schema";
 import { requireAuth } from "../auth";
 import { putObject } from "../storage";
 import { readImageForm } from "../upload";
@@ -26,10 +26,10 @@ meRoutes.post("/avatar", bodyLimit({ maxSize: 10 * 1024 * 1024 }), async (c) => 
   return c.json({ avatar: `/api/avatar/user/${userId}` });
 });
 
-// GET /api/me/library — liked tracks + own playlists + followed artists
+// GET /api/me/library — liked tracks + own playlists + followed artists + saved albums
 meRoutes.get("/library", async (c) => {
   const userId = c.get("userId");
-  const [liked, myPlaylists, following] = await Promise.all([
+  const [liked, myPlaylists, following, mySavedAlbums] = await Promise.all([
     db
       .select({ id: tracks.id, title: tracks.title, cover: tracks.cover })
       .from(likes)
@@ -41,8 +41,39 @@ meRoutes.get("/library", async (c) => {
       .from(follows)
       .innerJoin(artists, eq(follows.artistId, artists.id))
       .where(eq(follows.userId, userId)),
+    db
+      .select({
+        id: albums.id,
+        title: albums.title,
+        cover: albums.cover,
+        artistName: artists.name,
+        artistSlug: artists.slug,
+      })
+      .from(savedAlbums)
+      .innerJoin(albums, eq(savedAlbums.albumId, albums.id))
+      .innerJoin(artists, eq(albums.artistId, artists.id))
+      .where(eq(savedAlbums.userId, userId)),
   ]);
-  return c.json({ likes: liked, playlists: myPlaylists, following });
+  return c.json({ likes: liked, playlists: myPlaylists, following, savedAlbums: mySavedAlbums });
+});
+
+// POST /api/me/saved-albums/:albumId — toggle
+meRoutes.post("/saved-albums/:albumId", async (c) => {
+  const userId = c.get("userId");
+  const albumId = param(c, "albumId");
+  const existing = await db
+    .select()
+    .from(savedAlbums)
+    .where(and(eq(savedAlbums.userId, userId), eq(savedAlbums.albumId, albumId)))
+    .limit(1);
+  if (existing.length) {
+    await db
+      .delete(savedAlbums)
+      .where(and(eq(savedAlbums.userId, userId), eq(savedAlbums.albumId, albumId)));
+    return c.json({ saved: false });
+  }
+  await db.insert(savedAlbums).values({ userId, albumId }).onConflictDoNothing();
+  return c.json({ saved: true });
 });
 
 // POST /api/me/follows/:artistId — toggle follow

@@ -152,6 +152,20 @@ export const likes = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.trackId] })],
 );
 
+// Saved albums — like "likes" but for a whole album, not one track at a time.
+export const savedAlbums = pgTable(
+  "saved_albums",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    albumId: text("album_id")
+      .notNull()
+      .references(() => albums.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.albumId] })],
+);
+
 export const follows = pgTable(
   "follows",
   {

@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { IconPlayerPlayFilled, IconHeadphones, IconChevronUp, IconChevronDown } from "@tabler/icons-react";
-import { albumApi, type AlbumDetail } from "../lib/api";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import {
+  IconPlayerPlayFilled,
+  IconHeadphones,
+  IconChevronUp,
+  IconChevronDown,
+  IconHeart,
+  IconHeartFilled,
+} from "@tabler/icons-react";
+import { albumApi, meApi, type AlbumDetail } from "../lib/api";
 import { usePlayer } from "../hooks/usePlayer";
+import { useAuth } from "../hooks/useAuth";
 import type { Track } from "../lib/tracks";
 
 const TYPE_RU: Record<string, string> = { album: "альбом", ep: "EP", single: "сингл" };
@@ -10,6 +18,8 @@ const TYPE_RU: Record<string, string> = { album: "альбом", ep: "EP", singl
 export default function AlbumPage() {
   const { id } = useParams();
   const { play } = usePlayer();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [album, setAlbum] = useState<AlbumDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +50,12 @@ export default function AlbumPage() {
     [reordered[i], reordered[j]] = [reordered[j], reordered[i]];
     setAlbum({ ...album, tracks: reordered });
     await albumApi.reorder(album.id, order).catch(() => {});
+  };
+
+  const toggleSave = async () => {
+    if (!user) return navigate("/login");
+    setAlbum({ ...album, saved: !album.saved });
+    await meApi.toggleSavedAlbum(album.id).catch(() => setAlbum(album));
   };
 
   const playable: Track[] = album.tracks
@@ -97,13 +113,23 @@ export default function AlbumPage() {
               ))}
             </div>
           )}
-          <button
-            onClick={() => playable[0] && play(playable[0], playable)}
-            disabled={!playable.length}
-            className="mt-2 flex w-fit items-center gap-2 rounded-card bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
-          >
-            <IconPlayerPlayFilled size={16} /> слушать
-          </button>
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              onClick={() => playable[0] && play(playable[0], playable)}
+              disabled={!playable.length}
+              className="flex w-fit items-center gap-2 rounded-card bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+            >
+              <IconPlayerPlayFilled size={16} /> слушать
+            </button>
+            <button
+              onClick={() => void toggleSave()}
+              data-saved={album.saved}
+              aria-label={album.saved ? "убрать из сохранённых" : "сохранить альбом"}
+              className="grid h-11 w-11 place-items-center rounded-card border border-border bg-surface text-muted transition-colors hover:bg-surface-hover data-[saved=true]:text-accent"
+            >
+              {album.saved ? <IconHeartFilled size={18} /> : <IconHeart size={18} />}
+            </button>
+          </div>
         </div>
       </div>
 
