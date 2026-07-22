@@ -47,12 +47,12 @@ export default function TrackCard({ track, queue }: { track: Track; queue: Track
         >
           {track.title}
         </Link>
-        <Link
-          to={`/artist/${slugify(track.author)}`}
-          className="block truncate text-xs text-muted hover:underline"
-        >
-          {track.author}
-        </Link>
+        <p className="truncate text-xs text-muted">
+          <Link to={`/artist/${slugify(track.author)}`} className="hover:underline">
+            {track.author}
+          </Link>
+          {track.features?.length ? `, ${track.features.map((f) => f.name).join(", ")}` : ""}
+        </p>
       </div>
     </div>
   );

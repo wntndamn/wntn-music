@@ -20,6 +20,7 @@ import {
   type ArtistProfile,
   type TrackDetail,
   type AlbumDetail,
+  type ArtistBrief,
 } from "../lib/api";
 import SyncEditor from "./SyncEditor";
 import SideNav from "./SideNav";
@@ -483,7 +484,13 @@ function TracksSection({
           <p className="text-sm text-muted">треков пока нет</p>
         ) : (
           tracks.map((t) => (
-            <TrackManageRow key={t.id} track={t} albums={albums} onChange={onChange} />
+            <TrackManageRow
+              key={t.id}
+              track={t}
+              artistId={artistId}
+              albums={albums}
+              onChange={onChange}
+            />
           ))
         )}
       </div>
@@ -493,10 +500,12 @@ function TracksSection({
 
 function TrackManageRow({
   track,
+  artistId,
   albums,
   onChange,
 }: {
   track: { id: string; title: string; cover: string | null };
+  artistId: string;
   albums: { id: string; title: string }[];
   onChange: () => void;
 }) {
@@ -508,6 +517,7 @@ function TrackManageRow({
   const [explicit, setExplicit] = useState(false);
   const [kind, setKind] = useState<Kind>("release");
   const [status, setStatus] = useState<string | null>(null);
+  const [allArtists, setAllArtists] = useState<ArtistBrief[]>([]);
   const { confirm } = useDialogs();
 
   const reloadDetail = useCallback(() => {
@@ -524,6 +534,10 @@ function TrackManageRow({
   useEffect(() => {
     if (open && !detail) reloadDetail();
   }, [open, detail, reloadDetail]);
+
+  useEffect(() => {
+    if (open && !allArtists.length) artistApi.list().then(setAllArtists).catch(() => {});
+  }, [open, allArtists.length]);
 
   const run = async (label: string, fn: () => Promise<unknown>, refreshList = false) => {
     setStatus(`${label}…`);
@@ -641,6 +655,53 @@ function TrackManageRow({
                     />
                   </div>
                 )}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-sm text-muted">фиты:</span>
+                  {(detail?.features.length ?? 0) > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {detail!.features.map((f) => (
+                        <span
+                          key={f.id}
+                          className="flex items-center gap-1 rounded-card border border-border bg-bg py-1 pl-2.5 pr-1 text-xs"
+                        >
+                          {f.name}
+                          <button
+                            onClick={() =>
+                              run("фиты", () =>
+                                manageApi.setFeatures(
+                                  track.id,
+                                  detail!.features.filter((x) => x.id !== f.id).map((x) => x.id),
+                                ),
+                              )
+                            }
+                            aria-label="убрать"
+                            className="grid h-4 w-4 place-items-center rounded-full text-muted hover:text-accent"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <Select
+                    value=""
+                    placeholder="добавить артиста"
+                    options={allArtists
+                      .filter(
+                        (a) =>
+                          a.id !== artistId && !detail?.features.some((f) => f.id === a.id),
+                      )
+                      .map((a) => ({ value: a.id, label: a.name }))}
+                    onChange={(v) =>
+                      run("фиты", () =>
+                        manageApi.setFeatures(track.id, [
+                          ...(detail?.features.map((f) => f.id) ?? []),
+                          v,
+                        ]),
+                      )
+                    }
+                  />
+                </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted">обложка:</span>
                   <FileButton

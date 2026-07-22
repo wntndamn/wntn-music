@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { db } from "../db";
-import { tracks, artists, trackVersions, lyrics } from "../db/schema";
+import { tracks, artists, trackVersions, lyrics, trackArtists } from "../db/schema";
 import { redis } from "../redis";
 import { param } from "../types";
 
@@ -28,9 +28,33 @@ trackRoutes.get("/", async (c) => {
     .from(tracks)
     .innerJoin(artists, eq(tracks.artistId, artists.id))
     .orderBy(desc(tracks.createdAt));
-  const list = (slug ? rows.filter((r) => r.authorSlug === slug) : rows).map(
-    ({ primaryVersionId, ...r }) => ({ ...r, song: audioUrl(primaryVersionId) }),
-  );
+
+  const filtered = slug ? rows.filter((r) => r.authorSlug === slug) : rows;
+
+  // featured artists for the whole page in one query, then grouped in memory
+  const featRows = filtered.length
+    ? await db
+        .select({
+          trackId: trackArtists.trackId,
+          name: artists.name,
+          slug: artists.slug,
+        })
+        .from(trackArtists)
+        .innerJoin(artists, eq(trackArtists.artistId, artists.id))
+        .where(inArray(trackArtists.trackId, filtered.map((r) => r.id)))
+    : [];
+  const featByTrack = new Map<string, { name: string; slug: string }[]>();
+  for (const f of featRows) {
+    const list = featByTrack.get(f.trackId) ?? [];
+    list.push({ name: f.name, slug: f.slug });
+    featByTrack.set(f.trackId, list);
+  }
+
+  const list = filtered.map(({ primaryVersionId, ...r }) => ({
+    ...r,
+    features: featByTrack.get(r.id) ?? [],
+    song: audioUrl(primaryVersionId),
+  }));
   return c.json(list);
 });
 
@@ -62,12 +86,18 @@ trackRoutes.get("/:id", async (c) => {
     .from(trackVersions)
     .where(eq(trackVersions.trackId, id));
   const lyr = await db.select().from(lyrics).where(eq(lyrics.trackId, id)).limit(1);
+  const features = await db
+    .select({ id: artists.id, name: artists.name, slug: artists.slug })
+    .from(trackArtists)
+    .innerJoin(artists, eq(trackArtists.artistId, artists.id))
+    .where(eq(trackArtists.trackId, id));
 
   // live play count: Redis buffer may be ahead of the DB (flushes every 20)
   const buffered = Number((await redis.get(`plays:${id}`)) ?? 0);
 
   return c.json({
     ...track,
+    features,
     plays: Math.max(track.plays, buffered),
     versions: versions.map((v) => ({
       id: v.id,

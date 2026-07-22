@@ -89,12 +89,24 @@ export default function TrackPage() {
         />
         <div>
           <h1 className="font-display text-2xl leading-tight">{detail.title}</h1>
-          <Link
-            to={`/artist/${slugify(detail.author)}`}
-            className="text-sm text-muted hover:underline"
-          >
-            {detail.author}
-          </Link>
+          <p className="text-sm text-muted">
+            <Link to={`/artist/${slugify(detail.author)}`} className="hover:underline">
+              {detail.author}
+            </Link>
+            {detail.features?.length > 0 && (
+              <>
+                {" feat. "}
+                {detail.features.map((f, i) => (
+                  <span key={f.id}>
+                    {i > 0 && ", "}
+                    <Link to={`/artist/${f.slug}`} className="hover:underline">
+                      {f.name}
+                    </Link>
+                  </span>
+                ))}
+              </>
+            )}
+          </p>
           <p className="mt-1 flex items-center gap-1 text-xs text-muted">
             <IconHeadphones size={14} /> {detail.plays} прослушиваний
           </p>

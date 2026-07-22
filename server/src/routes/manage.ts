@@ -3,7 +3,7 @@ import { z } from "zod";
 import { bodyLimit } from "hono/body-limit";
 import { eq, and, ne, sql } from "drizzle-orm";
 import { db } from "../db";
-import { tracks, trackVersions, artists, lyrics } from "../db/schema";
+import { tracks, trackVersions, artists, lyrics, trackArtists } from "../db/schema";
 import { requireAuth, isAdminRole } from "../auth";
 import { putObject, deleteObject } from "../storage";
 import { readImageForm } from "../upload";
@@ -200,6 +200,34 @@ manageRoutes.put("/tracks/:id", async (c) => {
 
   await db.update(tracks).set(body.data).where(eq(tracks.id, trackId));
   return c.json({ ok: true });
+});
+
+// PUT /api/manage/tracks/:id/features — replace the featured-artist list
+// (body: { artistIds }). The main artist stays tracks.artistId; these are guests.
+manageRoutes.put("/tracks/:id/features", async (c) => {
+  const trackId = param(c, "id");
+  if (!(await ownsTrack(trackId, c.get("userId"), c.get("role"))))
+    return c.json({ error: "forbidden" }, 403);
+  const body = z
+    .object({ artistIds: z.array(z.string()).max(10) })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return c.json({ error: "invalid input" }, 400);
+
+  const track = await db
+    .select({ artistId: tracks.artistId })
+    .from(tracks)
+    .where(eq(tracks.id, trackId))
+    .limit(1);
+  // the primary artist is already implied — don't duplicate them as a feature
+  const ids = [...new Set(body.data.artistIds)].filter((a) => a !== track[0]?.artistId);
+
+  await db.delete(trackArtists).where(eq(trackArtists.trackId, trackId));
+  if (ids.length)
+    await db
+      .insert(trackArtists)
+      .values(ids.map((artistId) => ({ trackId, artistId })))
+      .onConflictDoNothing();
+  return c.json({ ok: true, count: ids.length });
 });
 
 // DELETE /api/manage/tracks/:id — track + versions + lyrics (cascade) + S3 files

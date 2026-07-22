@@ -67,6 +67,7 @@ export type TrackDetail = {
   albumId: string | null;
   genres: string[];
   explicit: boolean;
+  features: { id: string; name: string; slug: string }[];
   versions: TrackVersion[];
   lyrics: { content: string; synced: boolean } | null;
 };
@@ -190,13 +191,17 @@ export type ArtistProfile = {
   userId: string | null;
   albums: { id: string; title: string; cover?: string | null; type?: string }[];
   tracks: LibraryTrack[];
+  featuredOn: (LibraryTrack & { author: string })[];
   followerCount: number;
   isFollowing: boolean;
   claimable: boolean;
   pendingClaim: boolean;
 };
 
+export type ArtistBrief = { id: string; slug: string; name: string };
+
 export const artistApi = {
+  list: () => api<ArtistBrief[]>("/artists"),
   get: (slug: string) => api<ArtistProfile>(`/artists/${slug}`),
   claim: (b: { name: string; bio?: string }) =>
     api<{ id: string; slug: string }>("/artists", { method: "POST", body: b }),
@@ -372,6 +377,11 @@ export const manageApi = {
   ) => api<{ ok: true }>(`/manage/tracks/${trackId}`, { method: "PUT", body: b }),
   deleteTrack: (trackId: string) =>
     api<{ ok: true }>(`/manage/tracks/${trackId}`, { method: "DELETE" }),
+  setFeatures: (trackId: string, artistIds: string[]) =>
+    api<{ ok: true; count: number }>(`/manage/tracks/${trackId}/features`, {
+      method: "PUT",
+      body: { artistIds },
+    }),
   setPrimaryVersion: (versionId: string) =>
     api<{ ok: true }>(`/manage/versions/${versionId}/primary`, { method: "POST" }),
   updateVersion: (

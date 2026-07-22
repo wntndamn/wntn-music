@@ -6,6 +6,7 @@ export type Track = {
   description: string;
   song: string;
   plays?: number;
+  features?: { name: string; slug: string }[];
 };
 
 type RawTrack = {
@@ -39,6 +40,7 @@ type ApiTrack = {
   author: string;
   song: string | null;
   plays?: number;
+  features?: { name: string; slug: string }[];
 };
 
 // Prefer the backend; fall back to the static json so the site works either way.
@@ -58,6 +60,7 @@ export async function loadTracks(): Promise<Track[]> {
             description: "",
             song: r.song as string,
             plays: r.plays,
+            features: r.features,
           }));
       }
     }

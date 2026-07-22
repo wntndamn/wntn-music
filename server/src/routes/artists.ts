@@ -2,11 +2,20 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { eq, and, count } from "drizzle-orm";
 import { db } from "../db";
-import { artists, albums, tracks, follows, claimRequests } from "../db/schema";
+import { artists, albums, tracks, follows, claimRequests, trackArtists } from "../db/schema";
 import { requireAuth, currentUserId } from "../auth";
 import { newId, slugify, param, type AppEnv } from "../types";
 
 export const artistRoutes = new Hono<AppEnv>();
+
+// GET /api/artists -> flat list (used by the feature-artist picker)
+artistRoutes.get("/", async (c) => {
+  const rows = await db
+    .select({ id: artists.id, slug: artists.slug, name: artists.name })
+    .from(artists)
+    .orderBy(artists.name);
+  return c.json(rows);
+});
 
 // GET /api/artists/:slug -> profile + albums + tracks
 artistRoutes.get("/:slug", async (c) => {
@@ -20,12 +29,19 @@ artistRoutes.get("/:slug", async (c) => {
   if (!artist) return c.json({ error: "not found" }, 404);
 
   const uid = await currentUserId(c);
-  const [artistAlbums, artistTracks, followers, mine, pending] = await Promise.all([
+  const [artistAlbums, artistTracks, featuredOn, followers, mine, pending] = await Promise.all([
     db.select().from(albums).where(eq(albums.artistId, artist.id)),
     db
       .select({ id: tracks.id, title: tracks.title, cover: tracks.cover })
       .from(tracks)
       .where(eq(tracks.artistId, artist.id)),
+    // tracks where this artist is a guest, not the owner
+    db
+      .select({ id: tracks.id, title: tracks.title, cover: tracks.cover, author: artists.name })
+      .from(trackArtists)
+      .innerJoin(tracks, eq(trackArtists.trackId, tracks.id))
+      .innerJoin(artists, eq(tracks.artistId, artists.id))
+      .where(eq(trackArtists.artistId, artist.id)),
     db.select({ n: count() }).from(follows).where(eq(follows.artistId, artist.id)),
     uid
       ? db
@@ -53,6 +69,7 @@ artistRoutes.get("/:slug", async (c) => {
     ...artist,
     albums: artistAlbums,
     tracks: artistTracks,
+    featuredOn,
     followerCount: followers[0]?.n ?? 0,
     isFollowing: mine.length > 0,
     claimable: artist.userId === null,

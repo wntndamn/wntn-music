@@ -172,6 +172,35 @@ export default function ArtistPage() {
         <h2 className="text-xs uppercase tracking-wide text-muted">все треки</h2>
         {loading ? <GridSkeleton /> : <TrackGrid tracks={mine} />}
       </section>
+
+      {(profile?.featuredOn?.length ?? 0) > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-xs uppercase tracking-wide text-muted">участие в треках</h2>
+          <ul className="flex flex-col">
+            {profile!.featuredOn.map((t) => (
+              <li
+                key={t.id}
+                className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-surface"
+              >
+                <img
+                  src={t.cover ?? "/covers/default.jpg"}
+                  alt=""
+                  className="h-10 w-10 rounded object-cover"
+                />
+                <Link
+                  to={`/track/${t.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 truncate text-sm hover:underline"
+                >
+                  {t.title}
+                </Link>
+                <span className="truncate text-xs text-muted">{t.author}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
