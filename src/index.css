@@ -64,3 +64,54 @@
   background: var(--surface-hover);
   border-radius: 4px;
 }
+
+/* Page navigation (react-router `viewTransition`): the old view fades out
+   while the new one fades up, so routes feel connected instead of swapped. */
+::view-transition-old(root) {
+  animation: vt-out 0.16s ease-in forwards;
+}
+::view-transition-new(root) {
+  animation: vt-in 0.24s ease-out;
+}
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* Artwork keeps its identity across navigation (grid -> album/track page). */
+.vt-cover {
+  view-transition-name: cover;
+}
+
+/* skeleton shimmer */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--surface) 25%,
+    var(--surface-hover) 37%,
+    var(--surface) 63%
+  );
+  background-size: 200% 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}

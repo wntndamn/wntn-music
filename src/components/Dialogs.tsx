@@ -87,12 +87,12 @@ function DialogCard({
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 grid animate-fade-in place-items-center bg-black/50 p-4 backdrop-blur-sm"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose(null);
       }}
     >
-      <div className="w-full max-w-sm rounded-card border border-border bg-bg p-5 shadow-xl">
+      <div className="w-full max-w-sm animate-scale-in rounded-card border border-border bg-bg p-5 shadow-xl">
         <p className="text-sm">{dialog.message}</p>
         {dialog.kind === "prompt" && (
           <input

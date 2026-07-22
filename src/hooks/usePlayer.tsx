@@ -38,7 +38,13 @@ type PlayerState = {
   clearQueue: () => void;
   syncMode: PlaybackSync;
   setSyncMode: (m: PlaybackSync) => void;
+  shuffle: boolean;
+  toggleShuffle: () => void;
+  repeat: RepeatMode;
+  cycleRepeat: () => void;
 };
+
+export type RepeatMode = "off" | "all" | "one";
 
 const Ctx = createContext<PlayerState | null>(null);
 
@@ -61,6 +67,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const current = index >= 0 ? queue[index] ?? null : null;
 
+  const [shuffle, setShuffle] = useState(false);
+  const [repeat, setRepeat] = useState<RepeatMode>("off");
+
   const tabId = useRef(Math.random().toString(36).slice(2));
   const channelRef = useRef<BroadcastChannel | null>(null);
   // handlers read these through refs so the channel is only wired up once
@@ -72,13 +81,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // keep them in refs to dodge stale closures (registered once, called later)
   const nextRef = useRef<() => void>(() => {});
   const prevRef = useRef<() => void>(() => {});
+  const endRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
     const onTime = () => setCurrentTime(audio.currentTime);
     const onMeta = () => setDuration(audio.duration || 0);
-    const onEnd = () => nextRef.current();
+    const onEnd = () => endRef.current();
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
     audio.addEventListener("timeupdate", onTime);
@@ -182,7 +192,31 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }
 
   function next() {
-    setIndex((i) => (queue.length ? (i + 1) % queue.length : i));
+    setIndex((i) => {
+      if (!queue.length) return i;
+      if (shuffle && queue.length > 1) {
+        let r = i;
+        while (r === i) r = Math.floor(Math.random() * queue.length);
+        return r;
+      }
+      return (i + 1) % queue.length;
+    });
+  }
+
+  // called when a track ends: repeat "one" replays, "off" stops at the last track
+  function onTrackEnd() {
+    const audio = audioRef.current;
+    if (repeat === "one" && audio) {
+      audio.currentTime = 0;
+      void audio.play().catch(() => {});
+      return;
+    }
+    const isLast = !shuffle && index === queue.length - 1;
+    if (isLast && repeat === "off") {
+      audio?.pause();
+      return;
+    }
+    next();
   }
 
   function prev() {
@@ -195,6 +229,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }
   nextRef.current = next;
   prevRef.current = prev;
+  endRef.current = onTrackEnd;
 
   function seek(t: number) {
     if (audioRef.current) {
@@ -338,6 +373,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setSyncMode(m);
       localStorage.setItem("playbackSync", m);
     },
+    shuffle,
+    toggleShuffle: () => setShuffle((s) => !s),
+    repeat,
+    cycleRepeat: () =>
+      setRepeat((r) => (r === "off" ? "all" : r === "all" ? "one" : "off")),
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

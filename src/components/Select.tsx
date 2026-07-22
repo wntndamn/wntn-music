@@ -39,7 +39,7 @@ export default function Select({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-card border border-border bg-surface px-3 py-1.5 text-sm transition-colors hover:bg-surface-hover"
+        className="flex items-center gap-2 rounded-card border border-border bg-surface px-3 py-1.5 text-sm transition-colors hover:bg-surface-hover active:scale-[0.98]"
       >
         <span className={current ? "" : "text-muted"}>{current?.label ?? placeholder ?? "—"}</span>
         <IconChevronDown
@@ -48,7 +48,7 @@ export default function Select({
         />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 min-w-full overflow-hidden rounded-card border border-border bg-bg shadow-xl">
+        <div className="absolute left-0 top-full z-30 mt-1 min-w-full animate-dropdown-in overflow-hidden rounded-card border border-border bg-bg shadow-xl">
           {options.map((o) => (
             <button
               key={o.value}

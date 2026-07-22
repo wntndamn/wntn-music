@@ -31,7 +31,12 @@ export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
       <h1 className="font-display text-2xl">
         {mode === "signup" ? "регистрация" : "вход"}
       </h1>
-      <form onSubmit={submit} className="flex flex-col gap-3">
+      {/* key on the message so a repeated failure replays the shake */}
+      <form
+        onSubmit={submit}
+        key={error ?? "ok"}
+        className={"flex flex-col gap-3 " + (error ? "animate-shake" : "")}
+      >
         <Field
           label={mode === "signup" ? "юзернейм" : "юзернейм или email"}
           value={username}
@@ -54,7 +59,7 @@ export default function AuthPage({ mode }: { mode: "login" | "signup" }) {
           onChange={setPassword}
           autoComplete={mode === "signup" ? "new-password" : "current-password"}
         />
-        {error && <p className="font-mono text-sm text-accent">{error}</p>}
+        {error && <p className="animate-fade-in font-mono text-sm text-accent">{error}</p>}
         <button
           type="submit"
           disabled={busy}

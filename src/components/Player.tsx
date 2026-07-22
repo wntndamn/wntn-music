@@ -6,15 +6,23 @@ import {
   IconPlayerSkipBackFilled,
   IconPlayerSkipForwardFilled,
   IconVolume,
+  IconVolume2,
   IconVolumeOff,
   IconChevronDown,
   IconChevronUp,
   IconPlaylist,
+  IconArrowsShuffle,
+  IconRepeat,
+  IconRepeatOnce,
   IconX,
   IconTrash,
 } from "@tabler/icons-react";
 import { formatTime, slugify } from "../lib/tracks";
 import { usePlayer } from "../hooks/usePlayer";
+import { trackApi } from "../lib/api";
+import LikeButton from "./LikeButton";
+import LyricsPanel from "./LyricsPanel";
+import EqBars from "./EqBars";
 
 export default function Player() {
   const { current } = usePlayer();
@@ -42,14 +50,107 @@ export default function Player() {
   );
 }
 
+/** shuffle · prev · play · next · repeat — shared by both layouts */
+function TransportControls({ size = "sm" }: { size?: "sm" | "lg" }) {
+  const {
+    isPlaying,
+    toggle,
+    next,
+    prev,
+    shuffle,
+    toggleShuffle,
+    repeat,
+    cycleRepeat,
+  } = usePlayer();
+  const big = size === "lg";
+  const side = big ? "h-11 w-11" : "h-9 w-9";
+  const icon = big ? 22 : 18;
+
+  return (
+    <div className={"flex items-center " + (big ? "gap-3" : "gap-1")}>
+      <button
+        onClick={toggleShuffle}
+        data-active={shuffle}
+        aria-label="перемешать"
+        title="перемешать"
+        className={`grid ${side} place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-text data-[active=true]:text-accent`}
+      >
+        <IconArrowsShuffle size={icon} />
+      </button>
+      <button
+        onClick={prev}
+        aria-label="назад"
+        className={`grid ${side} place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-text`}
+      >
+        <IconPlayerSkipBackFilled size={icon} />
+      </button>
+      <button
+        onClick={toggle}
+        aria-label={isPlaying ? "пауза" : "играть"}
+        className={
+          "grid shrink-0 place-items-center rounded-full bg-accent text-white shadow-lg transition-transform hover:bg-accent-hover active:scale-95 " +
+          (big ? "h-16 w-16" : "h-10 w-10")
+        }
+      >
+        {isPlaying ? (
+          <IconPlayerPauseFilled size={big ? 28 : 20} />
+        ) : (
+          <IconPlayerPlayFilled size={big ? 28 : 20} />
+        )}
+      </button>
+      <button
+        onClick={next}
+        aria-label="вперёд"
+        className={`grid ${side} place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-text`}
+      >
+        <IconPlayerSkipForwardFilled size={icon} />
+      </button>
+      <button
+        onClick={cycleRepeat}
+        data-active={repeat !== "off"}
+        aria-label="повтор"
+        title={repeat === "one" ? "повтор трека" : repeat === "all" ? "повтор очереди" : "повтор выключен"}
+        className={`grid ${side} place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-text data-[active=true]:text-accent`}
+      >
+        {repeat === "one" ? <IconRepeatOnce size={icon} /> : <IconRepeat size={icon} />}
+      </button>
+    </div>
+  );
+}
+
+function VolumeControl() {
+  const { volume, setVolume } = usePlayer();
+  const Icon = volume === 0 ? IconVolumeOff : volume < 0.5 ? IconVolume2 : IconVolume;
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setVolume(volume > 0 ? 0 : 1)}
+        aria-label={volume > 0 ? "выключить звук" : "включить звук"}
+        className="text-muted transition-colors hover:text-text"
+      >
+        <Icon size={18} />
+      </button>
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.05}
+        value={volume}
+        onChange={(e) => setVolume(Number(e.target.value))}
+        aria-label="громкость"
+        className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-surface-hover accent-accent"
+      />
+    </div>
+  );
+}
+
 function MiniBar({ onExpand }: { onExpand: () => void }) {
-  const { current, isPlaying, currentTime, duration, toggle, next, prev } = usePlayer();
+  const { current, isPlaying, currentTime, duration } = usePlayer();
   if (!current) return null;
   const progress = duration ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-bg/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
-      {/* progress hairline doubles as the "how far in" indicator on mobile */}
+    <div className="fixed inset-x-0 bottom-0 z-20 animate-fade-up border-t border-border bg-bg/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
       <div className="h-0.5 w-full bg-surface-hover">
         <div className="h-full bg-accent transition-[width]" style={{ width: `${progress}%` }} />
       </div>
@@ -57,49 +158,45 @@ function MiniBar({ onExpand }: { onExpand: () => void }) {
         <button
           onClick={onExpand}
           aria-label="открыть плеер"
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          className="group flex min-w-0 flex-1 items-center gap-3 text-left md:flex-none md:w-64"
         >
-          <img
-            src={current.cover}
-            alt=""
-            className="h-11 w-11 shrink-0 rounded-md object-cover"
-            onError={(e) => {
-              const img = e.currentTarget;
-              if (!img.src.endsWith("/covers/default.jpg")) img.src = "/covers/default.jpg";
-            }}
-          />
+          <div className="relative shrink-0">
+            <img
+              src={current.cover}
+              alt=""
+              className="h-11 w-11 rounded-md object-cover transition-transform group-hover:scale-105"
+              onError={(e) => {
+                const img = e.currentTarget;
+                if (!img.src.endsWith("/covers/default.jpg")) img.src = "/covers/default.jpg";
+              }}
+            />
+            {isPlaying && (
+              <span className="absolute inset-0 grid place-items-center rounded-md bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                <EqBars />
+              </span>
+            )}
+          </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{current.title}</p>
             <p className="truncate text-xs text-muted">{current.author}</p>
           </div>
         </button>
 
-        <div className="flex items-center gap-1">
-          <button
-            onClick={prev}
-            aria-label="назад"
-            className="hidden h-9 w-9 place-items-center rounded-full text-muted hover:bg-surface-hover hover:text-text sm:grid"
-          >
-            <IconPlayerSkipBackFilled size={18} />
-          </button>
-          <button
-            onClick={toggle}
-            aria-label={isPlaying ? "пауза" : "играть"}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-text text-bg transition-transform active:scale-95"
-          >
-            {isPlaying ? <IconPlayerPauseFilled size={20} /> : <IconPlayerPlayFilled size={20} />}
-          </button>
-          <button
-            onClick={next}
-            aria-label="вперёд"
-            className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-surface-hover hover:text-text"
-          >
-            <IconPlayerSkipForwardFilled size={18} />
-          </button>
+        <div className="flex flex-1 items-center justify-center gap-1">
+          <TransportControls />
+          <div className="ml-1 hidden sm:block">
+            <LikeButton trackId={current.id} size={17} />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 md:w-64">
+          <div className="hidden lg:block">
+            <VolumeControl />
+          </div>
           <button
             onClick={onExpand}
             aria-label="развернуть"
-            className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-surface-hover hover:text-text"
+            className="grid h-9 w-9 place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-text"
           >
             <IconChevronUp size={18} />
           </button>
@@ -110,147 +207,137 @@ function MiniBar({ onExpand }: { onExpand: () => void }) {
 }
 
 function FullPlayer({ onClose }: { onClose: () => void }) {
-  const {
-    current,
-    isPlaying,
-    currentTime,
-    duration,
-    volume,
-    toggle,
-    next,
-    prev,
-    seek,
-    setVolume,
-  } = usePlayer();
+  const { current, isPlaying, currentTime, duration, seek } = usePlayer();
   const [showQueue, setShowQueue] = useState(false);
+  const [lyrics, setLyrics] = useState<string | null>(null);
+
+  // lyrics live on the track detail, not on the queue entry
+  const trackId = current?.id;
+  useEffect(() => {
+    if (!trackId) return;
+    setLyrics(null);
+    trackApi
+      .get(trackId)
+      .then((d) => setLyrics(d.lyrics?.content ?? null))
+      .catch(() => setLyrics(null));
+  }, [trackId]);
+
   if (!current) return null;
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-bg pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)]">
-      <div className="flex items-center justify-between px-4 py-3">
-        <button
-          onClick={onClose}
-          aria-label="свернуть"
-          className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-surface-hover hover:text-text"
-        >
-          <IconChevronDown size={20} />
-        </button>
-        <p className="text-xs uppercase tracking-wide text-muted">сейчас играет</p>
-        <button
-          onClick={() => setShowQueue((q) => !q)}
-          data-active={showQueue}
-          aria-label="очередь"
-          className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-surface-hover hover:text-text data-[active=true]:text-accent"
-        >
-          <IconPlaylist size={20} />
-        </button>
-      </div>
+    <div className="fixed inset-0 z-40 flex animate-slide-up flex-col bg-bg pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)]">
+      <button
+        onClick={onClose}
+        aria-label="свернуть"
+        className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-full border border-border bg-surface text-muted transition-colors hover:bg-surface-hover hover:text-text"
+      >
+        <IconChevronDown size={20} />
+      </button>
 
-      {showQueue ? (
-        <QueueList onClose={() => setShowQueue(false)} />
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-6 md:flex-row md:gap-10">
-          <img
-            src={current.cover}
-            alt=""
-            className="aspect-square w-full max-w-[min(70vw,340px)] rounded-card object-cover shadow-xl md:max-w-[380px]"
-            onError={(e) => {
-              const img = e.currentTarget;
-              if (!img.src.endsWith("/covers/default.jpg")) img.src = "/covers/default.jpg";
-            }}
-          />
-          <div className="flex w-full max-w-md flex-col gap-4">
-            <div className="min-w-0 text-center md:text-left">
-              <Link
-                to={`/track/${current.id}`}
-                onClick={onClose}
-                className="block truncate font-display text-2xl hover:underline"
-              >
-                {current.title}
-              </Link>
-              <Link
-                to={`/artist/${slugify(current.author)}`}
-                onClick={onClose}
-                className="block truncate text-sm text-muted hover:underline"
-              >
-                {current.author}
-              </Link>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <input
-                type="range"
-                min={0}
-                max={duration || 0}
-                step={0.1}
-                value={currentTime}
-                onChange={(e) => seek(Number(e.target.value))}
-                aria-label="прогресс"
-                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-hover accent-accent"
-              />
-              <div className="flex justify-between font-mono text-[11px] text-muted">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
+      <div className="flex min-h-0 flex-1 items-center justify-center gap-10 px-4 py-6 lg:px-10">
+        <div className="flex w-full max-w-sm flex-col items-center gap-4">
+          <div className="group relative w-full">
+            <img
+              src={current.cover}
+              alt=""
+              className="aspect-square w-full rounded-card object-cover shadow-2xl"
+              onError={(e) => {
+                const img = e.currentTarget;
+                if (!img.src.endsWith("/covers/default.jpg")) img.src = "/covers/default.jpg";
+              }}
+            />
+            {/* controls float over the artwork, like the reference player */}
+            <div className="absolute inset-0 grid place-items-center rounded-card bg-gradient-to-t from-black/55 via-black/10 to-black/25">
+              <div className="[&_button]:text-white/80 [&_button:hover]:bg-white/15 [&_button:hover]:text-white">
+                <TransportControls size="lg" />
               </div>
             </div>
-
-            <div className="flex items-center justify-center gap-5 md:justify-start">
-              <button
-                onClick={prev}
-                aria-label="назад"
-                className="grid h-11 w-11 place-items-center rounded-full text-muted hover:bg-surface-hover hover:text-text"
-              >
-                <IconPlayerSkipBackFilled size={24} />
-              </button>
-              <button
-                onClick={toggle}
-                aria-label={isPlaying ? "пауза" : "играть"}
-                className="grid h-16 w-16 place-items-center rounded-full bg-accent text-white transition-transform active:scale-95"
-              >
-                {isPlaying ? (
-                  <IconPlayerPauseFilled size={28} />
-                ) : (
-                  <IconPlayerPlayFilled size={28} />
-                )}
-              </button>
-              <button
-                onClick={next}
-                aria-label="вперёд"
-                className="grid h-11 w-11 place-items-center rounded-full text-muted hover:bg-surface-hover hover:text-text"
-              >
-                <IconPlayerSkipForwardFilled size={24} />
-              </button>
-            </div>
-
-            {/* touch devices use hardware volume; a slider there is dead weight */}
-            <div className="hidden items-center gap-2 md:flex">
-              <button
-                onClick={() => setVolume(volume > 0 ? 0 : 1)}
-                aria-label={volume > 0 ? "выключить звук" : "включить звук"}
-                className="text-muted hover:text-text"
-              >
-                {volume > 0 ? <IconVolume size={18} /> : <IconVolumeOff size={18} />}
-              </button>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={volume}
-                onChange={(e) => setVolume(Number(e.target.value))}
-                aria-label="громкость"
-                className="h-1 w-28 cursor-pointer appearance-none rounded-full bg-surface-hover accent-accent"
-              />
+            <button
+              onClick={() => setShowQueue((q) => !q)}
+              data-active={showQueue}
+              aria-label="очередь"
+              className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full bg-black/45 text-white/85 backdrop-blur transition-colors hover:bg-black/65 hover:text-white data-[active=true]:text-accent"
+            >
+              <IconPlaylist size={20} />
+            </button>
+            <div className="absolute bottom-3 left-3 grid h-10 w-10 place-items-center rounded-full bg-black/45 backdrop-blur">
+              <LikeButton trackId={current.id} size={18} />
             </div>
           </div>
+
+          <div className="w-full text-center">
+            <Link
+              to={`/track/${current.id}`}
+              onClick={onClose}
+              className="block truncate font-display text-xl hover:underline"
+            >
+              {current.title}
+            </Link>
+            <Link
+              to={`/artist/${slugify(current.author)}`}
+              onClick={onClose}
+              className="block truncate text-sm text-muted hover:underline"
+            >
+              {current.author}
+            </Link>
+          </div>
+
+          <div className="flex w-full flex-col gap-1">
+            <input
+              type="range"
+              min={0}
+              max={duration || 0}
+              step={0.1}
+              value={currentTime}
+              onChange={(e) => seek(Number(e.target.value))}
+              aria-label="прогресс"
+              className="h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-hover accent-accent"
+            />
+            <div className="flex justify-between font-mono text-[11px] text-muted">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(duration)}</span>
+            </div>
+          </div>
+
+          <div className="hidden md:block">
+            <VolumeControl />
+          </div>
+        </div>
+
+        {/* side panel: queue if toggled, otherwise lyrics when the track has them */}
+        {showQueue ? (
+          <div className="hidden min-h-0 w-full max-w-md lg:flex lg:flex-col">
+            <QueueList onClose={() => setShowQueue(false)} />
+          </div>
+        ) : (
+          lyrics && (
+            <div className="hidden min-h-0 w-full max-w-md flex-col gap-3 lg:flex">
+              <h2 className="text-xs uppercase tracking-wide text-muted">текст</h2>
+              <LyricsPanel content={lyrics} active />
+            </div>
+          )
+        )}
+      </div>
+
+      {/* narrow screens get the queue as a full sheet instead of a side panel */}
+      {showQueue && (
+        <div className="flex min-h-0 flex-1 flex-col lg:hidden">
+          <QueueList onClose={() => setShowQueue(false)} />
         </div>
       )}
+      {!showQueue && lyrics && (
+        <div className="flex max-h-[30vh] flex-col gap-2 overflow-hidden px-4 pb-4 lg:hidden">
+          <h2 className="text-xs uppercase tracking-wide text-muted">текст</h2>
+          <LyricsPanel content={lyrics} active />
+        </div>
+      )}
+      {isPlaying && <span className="sr-only">играет</span>}
     </div>
   );
 }
 
 function QueueList({ onClose }: { onClose: () => void }) {
-  const { queue, index, playAt, removeFromQueue, clearQueue } = usePlayer();
+  const { queue, index, isPlaying, playAt, removeFromQueue, clearQueue } = usePlayer();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-4">
@@ -259,35 +346,32 @@ function QueueList({ onClose }: { onClose: () => void }) {
         <div className="flex items-center gap-2">
           <button
             onClick={clearQueue}
-            className="flex items-center gap-1 rounded-card border border-border px-2.5 py-1 text-xs text-muted hover:text-accent"
+            className="flex items-center gap-1 rounded-card border border-border px-2.5 py-1 text-xs text-muted transition-colors hover:text-accent"
           >
             <IconTrash size={13} /> очистить
           </button>
           <button
             onClick={onClose}
             aria-label="закрыть очередь"
-            className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-surface-hover hover:text-text"
+            className="grid h-8 w-8 place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-text"
           >
             <IconX size={16} />
           </button>
         </div>
       </div>
 
-      <ul className="mx-auto flex w-full max-w-2xl min-h-0 flex-1 flex-col overflow-y-auto">
+      <ul className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col overflow-y-auto">
         {queue.map((t, i) => (
           <li
             key={`${t.id}-${i}`}
             data-current={i === index}
-            className="group flex items-center gap-3 rounded-md px-2 py-2 hover:bg-surface data-[current=true]:bg-surface"
+            className="group flex animate-fade-in items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-surface data-[current=true]:bg-surface"
           >
-            <span className="w-5 text-right font-mono text-xs text-muted">
-              {i === index ? "▶" : i + 1}
+            <span className="flex w-5 justify-end font-mono text-xs text-muted">
+              {i === index ? <EqBars playing={isPlaying} /> : i + 1}
             </span>
             <img src={t.cover} alt="" className="h-10 w-10 rounded object-cover" />
-            <button
-              onClick={() => playAt(i)}
-              className="min-w-0 flex-1 text-left"
-            >
+            <button onClick={() => playAt(i)} className="min-w-0 flex-1 text-left">
               <p
                 data-current={i === index}
                 className="truncate text-sm data-[current=true]:font-medium data-[current=true]:text-accent"
