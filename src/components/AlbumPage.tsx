@@ -13,6 +13,7 @@ import { albumApi, meApi, type AlbumDetail } from "../lib/api";
 import { usePlayer } from "../hooks/usePlayer";
 import { useAuth } from "../hooks/useAuth";
 import type { Track } from "../lib/tracks";
+import EditableImage from "./EditableImage";
 
 const TYPE_RU: Record<string, string> = { album: "альбом", ep: "EP", single: "сингл" };
 
@@ -76,14 +77,15 @@ export default function AlbumPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-end gap-4">
-        <img
-          src={album.cover ?? "/covers/default.jpg"}
-          alt=""
-          className="h-36 w-36 rounded-card object-cover"
-          onError={(e) => {
-            const img = e.currentTarget;
-            if (!img.src.endsWith("/covers/default.jpg")) img.src = "/covers/default.jpg";
+        <EditableImage
+          src={album.cover}
+          canEdit={album.canManage}
+          onPick={async (file) => {
+            const r = await albumApi.uploadCover(album.id, file).catch(() => null);
+            if (r) setAlbum({ ...album, cover: `${r.cover}?t=${Date.now()}` });
           }}
+          className="h-36 w-36 shrink-0"
+          label="сменить обложку"
         />
         <div className="flex min-w-0 flex-col gap-1">
           <p className="text-xs uppercase tracking-wide text-muted">

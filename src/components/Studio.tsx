@@ -25,6 +25,8 @@ import {
 import SyncEditor from "./SyncEditor";
 import SideNav from "./SideNav";
 import Select from "./Select";
+import Checkbox from "./Checkbox";
+import EditableImage from "./EditableImage";
 import { useDialogs } from "./Dialogs";
 
 const KIND_RU: Record<string, string> = {
@@ -199,14 +201,15 @@ function ProfileEditor({ artist }: { artist: MyArtist }) {
   return (
     <section className="flex max-w-md flex-col gap-3">
       <div className="flex items-center gap-3">
-        {avatar ? (
-          <img src={avatar} alt="" className="h-16 w-16 rounded-full object-cover" />
-        ) : (
-          <div className="grid h-16 w-16 place-items-center rounded-full bg-surface font-display text-xl">
-            {artist.name.slice(0, 1).toUpperCase()}
-          </div>
-        )}
-        <FileButton label="сменить аватарку" accept="image/*" onPick={uploadAvatar} />
+        <EditableImage
+          src={avatar}
+          canEdit
+          onPick={uploadAvatar}
+          rounded="rounded-full"
+          className="h-20 w-20 shrink-0 bg-surface"
+          label="сменить аву"
+        />
+        <span className="text-sm text-muted">аватарка артиста</span>
       </div>
       <Input value={name} onChange={setName} placeholder="имя" />
       <Input value={genres} onChange={setGenres} placeholder="жанры через запятую" />
@@ -613,15 +616,12 @@ function TrackManageRow({
                     onChange={setGenres}
                     placeholder="жанры через запятую (hyperpop, cloud rap)"
                   />
-                  <label className="flex w-fit cursor-pointer items-center gap-2 text-sm text-muted">
-                    <input
-                      type="checkbox"
-                      checked={explicit}
-                      onChange={(e) => setExplicit(e.target.checked)}
-                      className="accent-accent"
-                    />
-                    explicit (ненормативная лексика)
-                  </label>
+                  <Checkbox
+                    checked={explicit}
+                    onChange={setExplicit}
+                    label="explicit (ненормативная лексика)"
+                    className="w-fit text-muted"
+                  />
                   <button
                     onClick={() =>
                       run(

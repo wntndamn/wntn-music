@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { IconPlus, IconX, IconLock } from "@tabler/icons-react";
+import { IconPlus, IconX, IconLock, IconMusic } from "@tabler/icons-react";
 import { useAuth } from "../hooks/useAuth";
 import { useTracks } from "../hooks/useTracks";
 import {
@@ -12,6 +12,7 @@ import {
   type SavedPlaylist,
 } from "../lib/api";
 import TrackGrid, { GridSkeleton } from "./TrackGrid";
+import Checkbox from "./Checkbox";
 import { useDialogs } from "./Dialogs";
 
 export default function Library() {
@@ -66,127 +67,108 @@ export default function Library() {
   };
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex animate-fade-up flex-col gap-8">
       <section className="flex flex-col gap-3">
         <h2 className="font-display text-xl">плейлисты</h2>
-        <form onSubmit={create} className="flex gap-2">
+        <form onSubmit={create} className="flex flex-wrap items-center gap-2">
           <input
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder="новый плейлист"
-            className="flex-1 rounded-card border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+            className="min-w-0 flex-1 rounded-card border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors focus:border-accent"
           />
-          <label className="flex cursor-pointer items-center gap-1.5 rounded-card border border-border bg-surface px-3 text-sm text-muted">
-            <input
-              type="checkbox"
-              checked={!newPublic}
-              onChange={(e) => setNewPublic(!e.target.checked)}
-              className="accent-accent"
-            />
-            приватный
-          </label>
+          <Checkbox
+            checked={!newPublic}
+            onChange={(v) => setNewPublic(!v)}
+            label="приватный"
+            className="rounded-card border border-border bg-surface px-3 py-2 text-muted transition-colors hover:bg-surface-hover"
+          />
           <button
             type="submit"
-            className="flex items-center gap-1 rounded-card bg-text px-3 py-2 text-sm font-medium text-bg"
+            className="flex items-center gap-1 rounded-card bg-text px-3 py-2 text-sm font-medium text-bg transition-transform active:scale-95"
           >
             <IconPlus size={16} /> создать
           </button>
         </form>
+
         {playlists.length === 0 ? (
           <p className="text-sm text-muted">пока пусто</p>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <CardGrid>
             {playlists.map((p) => (
-              <div
+              <CoverCard
                 key={p.id}
-                className="flex items-center gap-1.5 rounded-card border border-border bg-surface pr-1.5 text-sm hover:bg-surface-hover"
-              >
-                <Link to={`/playlist/${p.id}`} className="flex items-center gap-1.5 py-2 pl-3">
-                  {!p.isPublic && <IconLock size={13} className="text-muted" />}
-                  {p.title}
-                </Link>
-                <button
-                  onClick={() => void removePlaylist(p.id, p.title)}
-                  aria-label="удалить"
-                  className="grid h-6 w-6 place-items-center rounded-full text-muted hover:bg-surface hover:text-accent"
-                >
-                  <IconX size={14} />
-                </button>
-              </div>
+                to={`/playlist/${p.id}`}
+                cover={p.cover}
+                title={p.title}
+                subtitle={p.isPublic ? "публичный" : "приватный"}
+                badge={!p.isPublic ? <IconLock size={12} /> : undefined}
+                onRemove={() => void removePlaylist(p.id, p.title)}
+              />
             ))}
-          </div>
+          </CardGrid>
         )}
       </section>
 
       {savedPlaylists.length > 0 && (
         <section className="flex flex-col gap-3">
           <h2 className="font-display text-xl">сохранённые плейлисты</h2>
-          <div className="flex flex-wrap gap-3">
+          <CardGrid>
             {savedPlaylists.map((p) => (
-              <Link
+              <CoverCard
                 key={p.id}
                 to={`/playlist/${p.id}`}
-                className="group flex w-32 shrink-0 flex-col rounded-card bg-surface p-2 transition-colors hover:bg-surface-hover"
-              >
-                <img
-                  src={p.cover ?? "/covers/default.jpg"}
-                  alt=""
-                  className="aspect-square w-full rounded-md object-cover"
-                  onError={(e) => {
-                    const img = e.currentTarget;
-                    if (!img.src.endsWith("/covers/default.jpg")) img.src = "/covers/default.jpg";
-                  }}
-                />
-                <p className="truncate px-1 pt-2 text-sm font-medium group-hover:underline">
-                  {p.title}
-                </p>
-                <p className="truncate px-1 text-xs text-muted">@{p.ownerUsername}</p>
-              </Link>
+                cover={p.cover}
+                title={p.title}
+                subtitle={`@${p.ownerUsername}`}
+              />
             ))}
-          </div>
+          </CardGrid>
         </section>
       )}
 
       {savedAlbums.length > 0 && (
         <section className="flex flex-col gap-3">
           <h2 className="font-display text-xl">сохранённые альбомы</h2>
-          <div className="flex flex-wrap gap-3">
+          <CardGrid>
             {savedAlbums.map((al) => (
-              <Link
+              <CoverCard
                 key={al.id}
                 to={`/album/${al.id}`}
-                className="group flex w-32 shrink-0 flex-col rounded-card bg-surface p-2 transition-colors hover:bg-surface-hover"
-              >
-                <img
-                  src={al.cover ?? "/covers/default.jpg"}
-                  alt=""
-                  className="aspect-square w-full rounded-md object-cover"
-                  onError={(e) => {
-                    const img = e.currentTarget;
-                    if (!img.src.endsWith("/covers/default.jpg")) img.src = "/covers/default.jpg";
-                  }}
-                />
-                <p className="truncate px-1 pt-2 text-sm font-medium group-hover:underline">
-                  {al.title}
-                </p>
-                <p className="truncate px-1 text-xs text-muted">{al.artistName}</p>
-              </Link>
+                cover={al.cover}
+                title={al.title}
+                subtitle={al.artistName}
+              />
             ))}
-          </div>
+          </CardGrid>
         </section>
       )}
 
       {following.length > 0 && (
         <section className="flex flex-col gap-3">
           <h2 className="font-display text-xl">подписки</h2>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-4">
             {following.map((a) => (
               <Link
                 key={a.slug}
                 to={`/artist/${a.slug}`}
-                className="rounded-card border border-border bg-surface px-3 py-2 text-sm hover:bg-surface-hover"
+                viewTransition
+                className="group flex w-24 flex-col items-center gap-2 text-center"
               >
-                {a.name}
+                {a.avatar ? (
+                  <img
+                    src={a.avatar}
+                    alt=""
+                    className="h-24 w-24 rounded-full object-cover transition-transform group-hover:scale-105"
+                  />
+                ) : (
+                  <span className="grid h-24 w-24 place-items-center rounded-full bg-surface font-display text-2xl transition-transform group-hover:scale-105">
+                    {a.name.slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+                <span className="w-full truncate text-sm font-medium group-hover:underline">
+                  {a.name}
+                </span>
               </Link>
             ))}
           </div>
@@ -203,6 +185,73 @@ export default function Library() {
           <p className="text-sm text-muted">пока нет лайкнутых треков</p>
         )}
       </section>
+    </div>
+  );
+}
+
+function CardGrid({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      {children}
+    </div>
+  );
+}
+
+function CoverCard({
+  to,
+  cover,
+  title,
+  subtitle,
+  badge,
+  onRemove,
+}: {
+  to: string;
+  cover: string | null;
+  title: string;
+  subtitle?: string;
+  badge?: React.ReactNode;
+  onRemove?: () => void;
+}) {
+  return (
+    <div className="group relative flex animate-fade-up flex-col rounded-card bg-surface p-2 transition-all duration-200 hover:-translate-y-1 hover:bg-surface-hover">
+      <Link to={to} viewTransition className="flex flex-col">
+        <div className="relative aspect-square overflow-hidden rounded-md bg-bg">
+          {cover ? (
+            <img
+              src={cover}
+              alt=""
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                const img = e.currentTarget;
+                if (!img.src.endsWith("/covers/default.jpg")) img.src = "/covers/default.jpg";
+              }}
+            />
+          ) : (
+            <span className="grid h-full w-full place-items-center text-muted">
+              <IconMusic size={32} />
+            </span>
+          )}
+          {badge && (
+            <span className="absolute left-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-bg/80 text-muted backdrop-blur">
+              {badge}
+            </span>
+          )}
+        </div>
+        <div className="px-1 pt-2">
+          <p className="truncate text-sm font-medium group-hover:underline">{title}</p>
+          {subtitle && <p className="truncate text-xs text-muted">{subtitle}</p>}
+        </div>
+      </Link>
+      {onRemove && (
+        <button
+          onClick={onRemove}
+          aria-label="удалить"
+          title="удалить"
+          className="absolute right-3 top-3 grid h-7 w-7 place-items-center rounded-full bg-bg/80 text-muted opacity-0 backdrop-blur transition-all hover:text-accent group-hover:opacity-100"
+        >
+          <IconX size={15} />
+        </button>
+      )}
     </div>
   );
 }

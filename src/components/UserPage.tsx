@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { IconUserCircle, IconMicrophone2 } from "@tabler/icons-react";
+import { IconUserCircle, IconMicrophone2, IconMusic } from "@tabler/icons-react";
 import { userApi, meApi, type UserProfile, type PlaybackSync } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
 import { usePlayer } from "../hooks/usePlayer";
+import EditableImage from "./EditableImage";
 
 const SYNC_OPTIONS: { value: PlaybackSync; label: string; hint: string }[] = [
   { value: "off", label: "выключена", hint: "каждая вкладка играет сама по себе" },
@@ -108,10 +109,19 @@ export default function UserPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-4">
-        {avatar ? (
-          <img src={avatar} alt="" className="h-16 w-16 rounded-full object-cover" />
+        {isMe ? (
+          <EditableImage
+            src={avatar}
+            canEdit
+            onPick={uploadAvatar}
+            rounded="rounded-full"
+            className="h-20 w-20 shrink-0"
+            label="сменить аву"
+          />
+        ) : avatar ? (
+          <img src={avatar} alt="" className="h-20 w-20 rounded-full object-cover" />
         ) : (
-          <IconUserCircle size={64} className="text-muted" />
+          <IconUserCircle size={72} className="text-muted" />
         )}
         <div>
           <h1 className="font-display text-2xl">
@@ -133,23 +143,8 @@ export default function UserPage() {
               <IconMicrophone2 size={14} /> {profile.artist.name}
             </Link>
           )}
-          {isMe && (
-            <div className="mt-1 flex items-center gap-2">
-              <label className="w-fit cursor-pointer rounded-card border border-border px-3 py-1.5 text-xs hover:bg-surface-hover">
-                сменить аватарку
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void uploadAvatar(f);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-              {status && <span className="font-mono text-xs text-muted">{status}</span>}
-            </div>
+          {isMe && status && (
+            <span className="mt-1 font-mono text-xs text-muted">{status}</span>
           )}
         </div>
       </div>
@@ -161,14 +156,35 @@ export default function UserPage() {
         {profile.playlists.length === 0 ? (
           <p className="text-sm text-muted">пока пусто</p>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {profile.playlists.map((p) => (
               <Link
                 key={p.id}
                 to={`/playlist/${p.id}`}
-                className="rounded-card border border-border bg-surface px-3 py-2 text-sm hover:bg-surface-hover"
+                viewTransition
+                className="group flex animate-fade-up flex-col rounded-card bg-surface p-2 transition-all duration-200 hover:-translate-y-1 hover:bg-surface-hover"
               >
-                {p.title}
+                <div className="aspect-square overflow-hidden rounded-md bg-bg">
+                  {p.cover ? (
+                    <img
+                      src={p.cover}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        if (!img.src.endsWith("/covers/default.jpg"))
+                          img.src = "/covers/default.jpg";
+                      }}
+                    />
+                  ) : (
+                    <span className="grid h-full w-full place-items-center text-muted">
+                      <IconMusic size={32} />
+                    </span>
+                  )}
+                </div>
+                <p className="truncate px-1 pt-2 text-sm font-medium group-hover:underline">
+                  {p.title}
+                </p>
               </Link>
             ))}
           </div>

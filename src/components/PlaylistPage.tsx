@@ -17,6 +17,8 @@ import { useTracks } from "../hooks/useTracks";
 import { usePlayer } from "../hooks/usePlayer";
 import { playlistApi, meApi } from "../lib/api";
 import { useDialogs } from "./Dialogs";
+import EditableImage from "./EditableImage";
+import Checkbox from "./Checkbox";
 import type { Track } from "../lib/tracks";
 
 type Row = { id: string; title: string; cover: string | null };
@@ -91,7 +93,17 @@ export default function PlaylistPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-end gap-4">
-        <img src={cover} alt="" className="h-28 w-28 rounded-card object-cover" />
+        <EditableImage
+          src={cover}
+          canEdit={isOwner}
+          onPick={async (file) => {
+            if (!id) return;
+            const r = await playlistApi.uploadCover(id, file).catch(() => null);
+            if (r) setPlCover(`${r.cover}?t=${Date.now()}`);
+          }}
+          className="h-32 w-32 shrink-0"
+          label="сменить обложку"
+        />
         <div className="flex min-w-0 flex-col gap-1">
           <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted">
             {isPublic ? <IconWorld size={13} /> : <IconLock size={13} />}
@@ -313,15 +325,12 @@ function EditPanel({
             }}
           />
         </label>
-        <label className="flex w-fit cursor-pointer items-center gap-2 text-sm text-muted">
-          <input
-            type="checkbox"
-            checked={!draftPublic}
-            onChange={(e) => setDraftPublic(!e.target.checked)}
-            className="accent-accent"
-          />
-          приватный — виден только мне
-        </label>
+        <Checkbox
+          checked={!draftPublic}
+          onChange={(v) => setDraftPublic(!v)}
+          label="приватный — виден только мне"
+          className="w-fit text-muted"
+        />
         <div className="flex items-center gap-3">
           <button
             onClick={() => void save()}
