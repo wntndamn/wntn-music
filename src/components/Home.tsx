@@ -51,7 +51,8 @@ export default function Home() {
               <Link
                 key={a.id}
                 to={`/artist/${a.slug}`}
-                className="group flex w-24 shrink-0 flex-col items-center gap-2 text-center"
+                viewTransition
+                className="group flex w-24 shrink-0 animate-fade-up flex-col items-center gap-2 text-center"
               >
                 {a.avatar ? (
                   <img
@@ -104,7 +105,8 @@ export default function Home() {
               <Link
                 key={p.id}
                 to={`/playlist/${p.id}`}
-                className="group flex flex-col rounded-card bg-surface p-2 transition-colors hover:bg-surface-hover"
+                viewTransition
+                className="group flex animate-fade-up flex-col rounded-card bg-surface p-2 transition-all duration-200 hover:-translate-y-1 hover:bg-surface-hover"
               >
                 <img
                   src={p.cover ?? "/covers/default.jpg"}
@@ -145,7 +147,8 @@ function AlbumCard({ album, isNew }: { album: HomeAlbum; isNew?: boolean }) {
   return (
     <Link
       to={`/album/${album.id}`}
-      className="group flex flex-col rounded-card bg-surface p-2 transition-colors hover:bg-surface-hover"
+      viewTransition
+      className="group flex animate-fade-up flex-col rounded-card bg-surface p-2 transition-all duration-200 hover:-translate-y-1 hover:bg-surface-hover"
     >
       <div className="relative">
         <img
@@ -190,7 +193,7 @@ function Chip({
     <button
       onClick={onClick}
       data-active={active}
-      className="rounded-card border border-border bg-surface px-3 py-1.5 text-sm font-medium transition-colors hover:bg-surface-hover data-[active=true]:bg-text data-[active=true]:text-bg"
+      className="rounded-card border border-border bg-surface px-3 py-1.5 text-sm font-medium transition-all hover:bg-surface-hover active:scale-95 data-[active=true]:bg-text data-[active=true]:text-bg"
     >
       {label}
     </button>
