@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { IconPlus, IconX, IconLock, IconMusic } from "@tabler/icons-react";
 import { useAuth } from "../hooks/useAuth";
-import { useTracks } from "../hooks/useTracks";
+import type { Track } from "../lib/tracks";
 import {
   meApi,
   playlistApi,
@@ -16,9 +16,10 @@ import Checkbox from "./Checkbox";
 import { useDialogs } from "./Dialogs";
 
 export default function Library() {
-  const { user, loading: authLoading, likes } = useAuth();
-  const { tracks, loading: tracksLoading } = useTracks();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [likedTracks, setLikedTracks] = useState<Track[]>([]);
+  const [libLoading, setLibLoading] = useState(true);
   const [playlists, setPlaylists] = useState<PlaylistMeta[]>([]);
   const [following, setFollowing] = useState<FollowedArtist[]>([]);
   const [savedAlbums, setSavedAlbums] = useState<SavedAlbum[]>([]);
@@ -40,13 +41,26 @@ export default function Library() {
           setFollowing(l.following);
           setSavedAlbums(l.savedAlbums);
           setSavedPlaylists(l.savedPlaylists);
+          // likes arrive with their audio url, so no catalog fetch is needed
+          setLikedTracks(
+            l.likes
+              .filter((t) => t.song)
+              .map((t) => ({
+                id: t.id,
+                title: t.title,
+                author: t.author ?? "",
+                cover: t.cover ?? "/covers/default.jpg",
+                description: "",
+                song: t.song as string,
+                plays: t.plays,
+              })),
+          );
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setLibLoading(false));
   }, [user]);
 
   if (authLoading || !user) return null;
-
-  const likedTracks = tracks.filter((t) => likes.has(t.id));
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,7 +191,7 @@ export default function Library() {
 
       <section className="flex flex-col gap-3">
         <h2 className="font-display text-xl">лайки</h2>
-        {tracksLoading ? (
+        {libLoading ? (
           <GridSkeleton />
         ) : likedTracks.length ? (
           <TrackGrid tracks={likedTracks} />

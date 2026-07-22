@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq, desc, inArray } from "drizzle-orm";
+import { eq, desc, inArray, count } from "drizzle-orm";
 import { db } from "../db";
 import { tracks, artists, trackVersions, lyrics, trackArtists } from "../db/schema";
 import { redis } from "../redis";
@@ -12,50 +12,77 @@ const audioUrl = (versionId: string | null) =>
 
 export const trackRoutes = new Hono();
 
-// GET /api/tracks?artist=<slug>
-trackRoutes.get("/", async (c) => {
-  const slug = c.req.query("artist");
-  const rows = await db
-    .select({
-      id: tracks.id,
-      title: tracks.title,
-      cover: tracks.cover,
-      plays: tracks.plays,
-      author: artists.name,
-      authorSlug: artists.slug,
-      primaryVersionId: tracks.primaryVersionId,
-    })
-    .from(tracks)
-    .innerJoin(artists, eq(tracks.artistId, artists.id))
-    .orderBy(desc(tracks.createdAt));
-
-  const filtered = slug ? rows.filter((r) => r.authorSlug === slug) : rows;
-
-  // featured artists for the whole page in one query, then grouped in memory
-  const featRows = filtered.length
+// Attaches featured artists to a page of tracks with one extra query.
+async function withFeatures<T extends { id: string; primaryVersionId: string | null }>(rows: T[]) {
+  const featRows = rows.length
     ? await db
-        .select({
-          trackId: trackArtists.trackId,
-          name: artists.name,
-          slug: artists.slug,
-        })
+        .select({ trackId: trackArtists.trackId, name: artists.name, slug: artists.slug })
         .from(trackArtists)
         .innerJoin(artists, eq(trackArtists.artistId, artists.id))
-        .where(inArray(trackArtists.trackId, filtered.map((r) => r.id)))
+        .where(
+          inArray(
+            trackArtists.trackId,
+            rows.map((r) => r.id),
+          ),
+        )
     : [];
-  const featByTrack = new Map<string, { name: string; slug: string }[]>();
+  const byTrack = new Map<string, { name: string; slug: string }[]>();
   for (const f of featRows) {
-    const list = featByTrack.get(f.trackId) ?? [];
+    const list = byTrack.get(f.trackId) ?? [];
     list.push({ name: f.name, slug: f.slug });
-    featByTrack.set(f.trackId, list);
+    byTrack.set(f.trackId, list);
   }
-
-  const list = filtered.map(({ primaryVersionId, ...r }) => ({
+  return rows.map(({ primaryVersionId, ...r }) => ({
     ...r,
-    features: featByTrack.get(r.id) ?? [],
+    features: byTrack.get(r.id) ?? [],
     song: audioUrl(primaryVersionId),
   }));
-  return c.json(list);
+}
+
+const catalogColumns = {
+  id: tracks.id,
+  title: tracks.title,
+  cover: tracks.cover,
+  plays: tracks.plays,
+  explicit: tracks.explicit,
+  author: artists.name,
+  authorSlug: artists.slug,
+  primaryVersionId: tracks.primaryVersionId,
+};
+
+const MAX_LIMIT = 100;
+
+// GET /api/tracks?artist=<slug>&limit=&offset=&sort=new|popular
+// Paginated so the client can load the catalog in pages instead of all at once.
+trackRoutes.get("/", async (c) => {
+  const slug = c.req.query("artist");
+  const sort = c.req.query("sort") === "popular" ? "popular" : "new";
+  const limit = Math.min(Number(c.req.query("limit") ?? 24) || 24, MAX_LIMIT);
+  const offset = Math.max(Number(c.req.query("offset") ?? 0) || 0, 0);
+  const where = slug ? eq(artists.slug, slug) : undefined;
+
+  const [rows, totalRow] = await Promise.all([
+    db
+      .select(catalogColumns)
+      .from(tracks)
+      .innerJoin(artists, eq(tracks.artistId, artists.id))
+      .where(where)
+      .orderBy(sort === "popular" ? desc(tracks.plays) : desc(tracks.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ n: count() })
+      .from(tracks)
+      .innerJoin(artists, eq(tracks.artistId, artists.id))
+      .where(where),
+  ]);
+
+  const total = totalRow[0]?.n ?? 0;
+  return c.json({
+    items: await withFeatures(rows),
+    total,
+    hasMore: offset + rows.length < total,
+  });
 });
 
 // GET /api/tracks/:id  -> track + versions + lyrics

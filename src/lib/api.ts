@@ -38,7 +38,15 @@ export type PlaylistMeta = {
   isPublic: boolean;
 };
 
-export type LibraryTrack = { id: string; title: string; cover: string | null };
+export type LibraryTrack = {
+  id: string;
+  title: string;
+  cover: string | null;
+  author?: string;
+  plays?: number;
+  explicit?: boolean;
+  song?: string | null;
+};
 
 // --- auth ---
 export const authApi = {
@@ -178,9 +186,25 @@ export type HomePlaylist = {
   cover: string | null;
   description: string | null;
 };
+export type HomePopularTrack = {
+  id: string;
+  title: string;
+  cover: string | null;
+  plays: number;
+  explicit: boolean;
+  author: string;
+  authorSlug: string;
+  song: string | null;
+};
 export const homeApi = {
   get: () =>
-    api<{ artists: HomeArtist[]; albums: HomeAlbum[]; playlists: HomePlaylist[] }>("/home"),
+    api<{
+      artists: HomeArtist[];
+      albums: HomeAlbum[];
+      playlists: HomePlaylist[];
+      popular: HomePopularTrack[];
+      stats: { tracks: number; artists: number; albums: number };
+    }>("/home"),
 };
 
 // --- artist / studio ---

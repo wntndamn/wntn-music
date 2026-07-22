@@ -13,7 +13,6 @@ import {
   IconPlus,
 } from "@tabler/icons-react";
 import { useAuth } from "../hooks/useAuth";
-import { useTracks } from "../hooks/useTracks";
 import { usePlayer } from "../hooks/usePlayer";
 import { playlistApi, meApi } from "../lib/api";
 import { useDialogs } from "./Dialogs";
@@ -21,12 +20,17 @@ import EditableImage from "./EditableImage";
 import Checkbox from "./Checkbox";
 import type { Track } from "../lib/tracks";
 
-type Row = { id: string; title: string; cover: string | null };
+type Row = {
+  id: string;
+  title: string;
+  cover: string | null;
+  author?: string;
+  song?: string | null;
+};
 
 export default function PlaylistPage() {
   const { id } = useParams();
   const { user } = useAuth();
-  const { tracks } = useTracks();
   const { play, addToQueue, current, toggle } = usePlayer();
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
@@ -55,10 +59,17 @@ export default function PlaylistPage() {
       .catch((e) => setError(e instanceof Error ? e.message : "ошибка"));
   }, [id]);
 
-  // resolve playable Track objects (with audio url) from the full catalog
-  const playable = rows
-    .map((r) => tracks.find((t) => t.id === r.id))
-    .filter((t): t is Track => Boolean(t));
+  // the API returns the audio url per row, so no catalog fetch is needed
+  const playable: Track[] = rows
+    .filter((r) => r.song)
+    .map((r) => ({
+      id: r.id,
+      title: r.title,
+      author: r.author ?? "",
+      cover: r.cover ?? "/covers/default.jpg",
+      description: "",
+      song: r.song as string,
+    }));
 
   const remove = async (trackId: string) => {
     if (!id) return;
@@ -164,7 +175,7 @@ export default function PlaylistPage() {
       ) : (
         <ul className="flex flex-col">
           {rows.map((r, i) => {
-            const t = tracks.find((x) => x.id === r.id);
+            const t = playable.find((x) => x.id === r.id);
             return (
               <li
                 key={r.id}

@@ -43,31 +43,49 @@ type ApiTrack = {
   features?: { name: string; slug: string }[];
 };
 
-// Prefer the backend; fall back to the static json so the site works either way.
-export async function loadTracks(): Promise<Track[]> {
+export const toTrack = (r: ApiTrack): Track => ({
+  id: r.id,
+  title: r.title,
+  author: r.author,
+  cover: r.cover ?? "/covers/default.jpg",
+  description: "",
+  song: r.song as string,
+  plays: r.plays,
+  features: r.features,
+});
+
+export type TrackPage = { items: Track[]; total: number; hasMore: boolean };
+
+// One page of the catalog. Falls back to the static json (whole list, no
+// paging) when the API is unreachable, so the site still works offline.
+export async function loadTracks(opts: {
+  limit?: number;
+  offset?: number;
+  artist?: string;
+  sort?: "new" | "popular";
+} = {}): Promise<TrackPage> {
+  const params = new URLSearchParams();
+  params.set("limit", String(opts.limit ?? 24));
+  params.set("offset", String(opts.offset ?? 0));
+  if (opts.artist) params.set("artist", opts.artist);
+  if (opts.sort) params.set("sort", opts.sort);
+
   try {
-    const res = await fetch("/api/tracks");
+    const res = await fetch(`/api/tracks?${params}`);
     if (res.ok) {
-      const rows = (await res.json()) as ApiTrack[];
-      if (Array.isArray(rows) && rows.length) {
-        return rows
-          .filter((r) => r.song)
-          .map((r) => ({
-            id: r.id,
-            title: r.title,
-            author: r.author,
-            cover: r.cover ?? "/covers/default.jpg",
-            description: "",
-            song: r.song as string,
-            plays: r.plays,
-            features: r.features,
-          }));
-      }
+      const data = (await res.json()) as { items: ApiTrack[]; total: number; hasMore: boolean };
+      if (Array.isArray(data.items))
+        return {
+          items: data.items.filter((r) => r.song).map(toTrack),
+          total: data.total,
+          hasMore: data.hasMore,
+        };
     }
   } catch {
     // network/api down — use static catalog
   }
-  return fetchTracks();
+  const all = await fetchTracks();
+  return { items: all, total: all.length, hasMore: false };
 }
 
 export const slugify = (s: string) =>

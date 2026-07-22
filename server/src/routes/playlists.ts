@@ -3,7 +3,7 @@ import { z } from "zod";
 import { eq, and, sql } from "drizzle-orm";
 import { bodyLimit } from "hono/body-limit";
 import { db } from "../db";
-import { playlists, playlistTracks, tracks, playlistFollows, users } from "../db/schema";
+import { playlists, playlistTracks, tracks, playlistFollows, users, artists } from "../db/schema";
 import { requireAuth, currentUserId } from "../auth";
 import { putObject } from "../storage";
 import { readImageForm } from "../upload";
@@ -20,12 +20,26 @@ playlistRoutes.get("/:id", async (c) => {
   if (!pl.isPublic && (await currentUserId(c)) !== pl.userId)
     return c.json({ error: "forbidden" }, 403);
 
-  const items = await db
-    .select({ id: tracks.id, title: tracks.title, cover: tracks.cover, position: playlistTracks.position })
+  // song included so the page can play without loading the whole catalog
+  const rows = await db
+    .select({
+      id: tracks.id,
+      title: tracks.title,
+      cover: tracks.cover,
+      author: artists.name,
+      explicit: tracks.explicit,
+      primaryVersionId: tracks.primaryVersionId,
+      position: playlistTracks.position,
+    })
     .from(playlistTracks)
     .innerJoin(tracks, eq(playlistTracks.trackId, tracks.id))
+    .innerJoin(artists, eq(tracks.artistId, artists.id))
     .where(eq(playlistTracks.playlistId, id));
-  items.sort((a, b) => a.position - b.position);
+  rows.sort((a, b) => a.position - b.position);
+  const items = rows.map(({ primaryVersionId, ...t }) => ({
+    ...t,
+    song: primaryVersionId ? `/api/audio/${primaryVersionId}` : null,
+  }));
 
   const [ownerRow, uid] = await Promise.all([
     db.select({ username: users.username }).from(users).where(eq(users.id, pl.userId)).limit(1),

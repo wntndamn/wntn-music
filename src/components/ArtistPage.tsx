@@ -15,7 +15,7 @@ import {
 import { useTracks } from "../hooks/useTracks";
 import { useAuth } from "../hooks/useAuth";
 import { usePlayer } from "../hooks/usePlayer";
-import { slugify, type Track } from "../lib/tracks";
+import type { Track } from "../lib/tracks";
 import { artistApi, type ArtistProfile } from "../lib/api";
 import { GridSkeleton } from "./TrackGrid";
 import FollowButton from "./FollowButton";
@@ -41,7 +41,8 @@ function linkIcon(url: string) {
 
 export default function ArtistPage() {
   const { slug } = useParams();
-  const { tracks, loading } = useTracks();
+  // only this artist's tracks are fetched, and they page in as you scroll
+  const { tracks: mine, loading, loadingMore, hasMore, sentinelRef } = useTracks({ artist: slug });
   const { play, addToQueue, current, isPlaying, toggle } = usePlayer();
   const [profile, setProfile] = useState<ArtistProfile | null>(null);
 
@@ -49,7 +50,6 @@ export default function ArtistPage() {
     if (slug) artistApi.get(slug).then(setProfile).catch(() => setProfile(null));
   }, [slug]);
 
-  const mine = tracks.filter((t) => slugify(t.author) === slug);
   const name = profile?.name ?? mine[0]?.author ?? slug;
   const popular = [...mine].sort((a, b) => (b.plays ?? 0) - (a.plays ?? 0)).slice(0, 5);
   const albums = profile?.albums ?? [];
@@ -244,6 +244,11 @@ export default function ArtistPage() {
       <section className="flex flex-col gap-3">
         <h2 className="font-display text-xl">все треки</h2>
         {loading ? <GridSkeleton /> : <TrackRows tracks={mine} queue={mine} />}
+        {hasMore && (
+          <div ref={sentinelRef} className="py-2 text-center text-xs text-muted">
+            {loadingMore ? "загрузка…" : ""}
+          </div>
+        )}
       </section>
 
       {(profile?.featuredOn?.length ?? 0) > 0 && (

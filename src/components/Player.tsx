@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   IconPlayerPlayFilled,
@@ -19,6 +19,7 @@ import {
 } from "@tabler/icons-react";
 import { formatTime, slugify } from "../lib/tracks";
 import { usePlayer } from "../hooks/usePlayer";
+import { useVirtualList } from "../hooks/useVirtualList";
 import { trackApi } from "../lib/api";
 import LikeButton from "./LikeButton";
 import LyricsPanel from "./LyricsPanel";
@@ -144,21 +145,61 @@ function VolumeControl() {
   );
 }
 
+const SWIPE_THRESHOLD = 60;
+
 function MiniBar({ onExpand }: { onExpand: () => void }) {
-  const { current, isPlaying, currentTime, duration } = usePlayer();
+  const { current, isPlaying, currentTime, duration, toggle, next, prev } = usePlayer();
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  // the offset lives in a ref: touchend must read the final value, and state
+  // updates are async, so a fast flick would otherwise read a stale 0
+  const dragRef = useRef(0);
+  const [drag, setDrag] = useState(0);
+
   if (!current) return null;
   const progress = duration ? (currentTime / duration) * 100 : 0;
 
+  // On phones the bar carries play/pause only; swiping it left/right changes
+  // track, and everything else lives in the expanded player.
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touch.current = { x: t.clientX, y: t.clientY };
+    dragRef.current = 0;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!touch.current || !e.touches[0]) return;
+    const t = e.touches[0];
+    const dx = t.clientX - touch.current.x;
+    // ignore mostly-vertical gestures so page scrolling still works
+    if (Math.abs(dx) > Math.abs(t.clientY - touch.current.y)) {
+      dragRef.current = dx;
+      setDrag(dx);
+    }
+  };
+  const onTouchEnd = () => {
+    const dx = dragRef.current;
+    if (dx <= -SWIPE_THRESHOLD) next();
+    else if (dx >= SWIPE_THRESHOLD) prev();
+    touch.current = null;
+    dragRef.current = 0;
+    setDrag(0);
+  };
+
   return (
-    <div className="fixed inset-x-0 bottom-0 z-20 animate-fade-up border-t border-border bg-bg/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
+    <div className="fixed inset-x-0 bottom-0 z-20 animate-fade-up overflow-hidden border-t border-border bg-bg/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
       <div className="h-0.5 w-full bg-surface-hover">
         <div className="h-full bg-accent transition-[width]" style={{ width: `${progress}%` }} />
       </div>
-      <div className="mx-auto flex max-w-6xl items-center gap-3 px-3 py-2 sm:px-4">
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{ transform: drag ? `translateX(${drag / 3}px)` : undefined }}
+        className="mx-auto flex max-w-6xl items-center gap-3 px-3 py-2 transition-transform sm:px-4"
+      >
         <button
           onClick={onExpand}
           aria-label="открыть плеер"
-          className="group flex min-w-0 flex-1 items-center gap-3 text-left md:flex-none md:w-64"
+          className="group flex min-w-0 flex-1 items-center gap-3 text-left md:w-64 md:flex-none"
         >
           <div className="relative shrink-0">
             <img
@@ -178,18 +219,29 @@ function MiniBar({ onExpand }: { onExpand: () => void }) {
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{current.title}</p>
-            <p className="truncate text-xs text-muted">{current.author}</p>
+            <p className="truncate text-xs text-muted">
+              {drag ? (drag < 0 ? "следующий →" : "← предыдущий") : current.author}
+            </p>
           </div>
         </button>
 
-        <div className="flex flex-1 items-center justify-center gap-1">
+        {/* phones: play/pause only — swipe handles skipping */}
+        <button
+          onClick={toggle}
+          aria-label={isPlaying ? "пауза" : "играть"}
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent text-white transition-transform active:scale-95 md:hidden"
+        >
+          {isPlaying ? <IconPlayerPauseFilled size={20} /> : <IconPlayerPlayFilled size={20} />}
+        </button>
+
+        <div className="hidden flex-1 items-center justify-center gap-1 md:flex">
           <TransportControls />
-          <div className="ml-1 hidden sm:block">
+          <div className="ml-1">
             <LikeButton trackId={current.id} size={17} />
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 md:w-64">
+        <div className="hidden items-center justify-end gap-2 md:flex md:w-64">
           <div className="hidden lg:block">
             <VolumeControl />
           </div>
@@ -336,8 +388,14 @@ function FullPlayer({ onClose }: { onClose: () => void }) {
   );
 }
 
+const QUEUE_ROW_H = 56;
+
 function QueueList({ onClose }: { onClose: () => void }) {
   const { queue, index, isPlaying, playAt, removeFromQueue, clearQueue } = usePlayer();
+  const { scrollRef, start, end, padTop, padBottom } = useVirtualList({
+    count: queue.length,
+    rowHeight: QUEUE_ROW_H,
+  });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-4">
@@ -360,36 +418,45 @@ function QueueList({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      <ul className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col overflow-y-auto">
-        {queue.map((t, i) => (
-          <li
-            key={`${t.id}-${i}`}
-            data-current={i === index}
-            className="group flex animate-fade-in items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-surface data-[current=true]:bg-surface"
-          >
-            <span className="flex w-5 justify-end font-mono text-xs text-muted">
-              {i === index ? <EqBars playing={isPlaying} /> : i + 1}
-            </span>
-            <img src={t.cover} alt="" className="h-10 w-10 rounded object-cover" />
-            <button onClick={() => playAt(i)} className="min-w-0 flex-1 text-left">
-              <p
-                data-current={i === index}
-                className="truncate text-sm data-[current=true]:font-medium data-[current=true]:text-accent"
-              >
-                {t.title}
-              </p>
-              <p className="truncate text-xs text-muted">{t.author}</p>
-            </button>
-            <button
-              onClick={() => removeFromQueue(i)}
-              aria-label="убрать из очереди"
-              className="grid h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-opacity hover:text-accent group-hover:opacity-100"
-            >
-              <IconX size={15} />
-            </button>
-          </li>
-        ))}
-      </ul>
+      {/* virtualized: the queue can hold the whole catalog */}
+      <div ref={scrollRef} className="mx-auto min-h-0 w-full max-w-2xl flex-1 overflow-y-auto">
+        <div style={{ paddingTop: padTop, paddingBottom: padBottom }}>
+          <ul className="flex flex-col">
+            {queue.slice(start, end).map((t, n) => {
+              const i = start + n;
+              return (
+                <li
+                  key={`${t.id}-${i}`}
+                  data-current={i === index}
+                  style={{ height: QUEUE_ROW_H }}
+                  className="group flex items-center gap-3 rounded-md px-2 transition-colors hover:bg-surface data-[current=true]:bg-surface"
+                >
+                  <span className="flex w-5 justify-end font-mono text-xs text-muted">
+                    {i === index ? <EqBars playing={isPlaying} /> : i + 1}
+                  </span>
+                  <img src={t.cover} alt="" className="h-10 w-10 rounded object-cover" />
+                  <button onClick={() => playAt(i)} className="min-w-0 flex-1 text-left">
+                    <p
+                      data-current={i === index}
+                      className="truncate text-sm data-[current=true]:font-medium data-[current=true]:text-accent"
+                    >
+                      {t.title}
+                    </p>
+                    <p className="truncate text-xs text-muted">{t.author}</p>
+                  </button>
+                  <button
+                    onClick={() => removeFromQueue(i)}
+                    aria-label="убрать из очереди"
+                    className="grid h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-opacity hover:text-accent group-hover:opacity-100"
+                  >
+                    <IconX size={15} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }

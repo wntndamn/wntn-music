@@ -7,7 +7,7 @@ export const homeRoutes = new Hono();
 
 // GET /api/home — everything the landing page needs in one shot
 homeRoutes.get("/", async (c) => {
-  const [artistRows, albumRows, playlistRows] = await Promise.all([
+  const [artistRows, albumRows, playlistRows, trackTotal] = await Promise.all([
     db
       .select({
         id: artists.id,
@@ -50,6 +50,37 @@ homeRoutes.get("/", async (c) => {
       .where(eq(playlists.isPublic, true))
       .orderBy(desc(playlists.createdAt))
       .limit(12),
+    db.select({ n: count() }).from(tracks),
   ]);
-  return c.json({ artists: artistRows, albums: albumRows, playlists: playlistRows });
+  // top tracks power the hero and the "популярные" rail — small, fixed page
+  const popularRows = await db
+    .select({
+      id: tracks.id,
+      title: tracks.title,
+      cover: tracks.cover,
+      plays: tracks.plays,
+      explicit: tracks.explicit,
+      author: artists.name,
+      authorSlug: artists.slug,
+      primaryVersionId: tracks.primaryVersionId,
+    })
+    .from(tracks)
+    .innerJoin(artists, eq(tracks.artistId, artists.id))
+    .orderBy(desc(tracks.plays), desc(tracks.createdAt))
+    .limit(10);
+
+  return c.json({
+    artists: artistRows,
+    albums: albumRows,
+    playlists: playlistRows,
+    popular: popularRows.map(({ primaryVersionId, ...t }) => ({
+      ...t,
+      song: primaryVersionId ? `/api/audio/${primaryVersionId}` : null,
+    })),
+    stats: {
+      tracks: Number(trackTotal[0]?.n ?? 0),
+      artists: artistRows.length,
+      albums: albumRows.length,
+    },
+  });
 });

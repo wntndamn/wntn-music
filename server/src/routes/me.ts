@@ -51,9 +51,17 @@ meRoutes.get("/library", async (c) => {
   const userId = c.get("userId");
   const [liked, myPlaylists, following, mySavedAlbums, savedPlaylists] = await Promise.all([
     db
-      .select({ id: tracks.id, title: tracks.title, cover: tracks.cover })
+      .select({
+        id: tracks.id,
+        title: tracks.title,
+        cover: tracks.cover,
+        author: artists.name,
+        plays: tracks.plays,
+        primaryVersionId: tracks.primaryVersionId,
+      })
       .from(likes)
       .innerJoin(tracks, eq(likes.trackId, tracks.id))
+      .innerJoin(artists, eq(tracks.artistId, artists.id))
       .where(eq(likes.userId, userId)),
     db.select().from(playlists).where(eq(playlists.userId, userId)),
     db
@@ -86,7 +94,11 @@ meRoutes.get("/library", async (c) => {
       .where(eq(playlistFollows.userId, userId)),
   ]);
   return c.json({
-    likes: liked,
+    // song included so the library can play without the full catalog
+    likes: liked.map(({ primaryVersionId, ...t }) => ({
+      ...t,
+      song: primaryVersionId ? `/api/audio/${primaryVersionId}` : null,
+    })),
     playlists: myPlaylists,
     following,
     savedAlbums: mySavedAlbums,
