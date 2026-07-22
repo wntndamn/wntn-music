@@ -11,6 +11,7 @@ import { trackApi } from "../lib/api";
 
 type PlayerState = {
   queue: Track[];
+  index: number;
   current: Track | null;
   isPlaying: boolean;
   currentTime: number;
@@ -22,6 +23,11 @@ type PlayerState = {
   prev: () => void;
   seek: (t: number) => void;
   setVolume: (v: number) => void;
+  playAt: (i: number) => void;
+  addToQueue: (track: Track) => void;
+  playNext: (track: Track) => void;
+  removeFromQueue: (i: number) => void;
+  clearQueue: () => void;
 };
 
 const Ctx = createContext<PlayerState | null>(null);
@@ -124,6 +130,50 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  function playAt(i: number) {
+    if (i >= 0 && i < queue.length) setIndex(i);
+  }
+
+  function addToQueue(track: Track) {
+    setQueue((q) => {
+      if (q.some((t) => t.id === track.id)) return q;
+      if (!q.length) setIndex(0);
+      return [...q, track];
+    });
+  }
+
+  // insert right after the current track ("play next" in the queue menu)
+  function playNext(track: Track) {
+    setQueue((q) => {
+      if (!q.length) {
+        setIndex(0);
+        return [track];
+      }
+      const without = q.filter((t) => t.id !== track.id);
+      // removing an earlier track shifts the current one back by one
+      const removedBefore = q.findIndex((t) => t.id === track.id);
+      const at = removedBefore !== -1 && removedBefore < index ? index - 1 : index;
+      if (at !== index) setIndex(at);
+      return [...without.slice(0, at + 1), track, ...without.slice(at + 1)];
+    });
+  }
+
+  function removeFromQueue(i: number) {
+    setQueue((q) => {
+      if (i < 0 || i >= q.length) return q;
+      const next = q.filter((_, n) => n !== i);
+      if (i < index) setIndex((cur) => cur - 1);
+      else if (i === index) setIndex((cur) => (cur >= next.length ? next.length - 1 : cur));
+      return next;
+    });
+  }
+
+  function clearQueue() {
+    setQueue([]);
+    setIndex(-1);
+    audioRef.current?.pause();
+  }
+
   // Media Session API: system now-playing UI (Chrome flyout, lock screen,
   // notification shade) + bluetooth headset button gestures (play/pause,
   // next/prev track, seek) all route through these handlers instead of the page.
@@ -193,6 +243,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const value: PlayerState = {
     queue,
+    index,
     current,
     isPlaying,
     currentTime,
@@ -204,6 +255,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     prev,
     seek,
     setVolume: setVol,
+    playAt,
+    addToQueue,
+    playNext,
+    removeFromQueue,
+    clearQueue,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
