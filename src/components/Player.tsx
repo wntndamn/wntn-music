@@ -11,6 +11,7 @@ import {
   IconChevronDown,
   IconChevronUp,
   IconPlaylist,
+  IconMicrophone2,
   IconArrowsShuffle,
   IconRepeat,
   IconRepeatOnce,
@@ -258,10 +259,19 @@ function MiniBar({ onExpand }: { onExpand: () => void }) {
   );
 }
 
+const DISMISS_THRESHOLD = 110;
+
 function FullPlayer({ onClose }: { onClose: () => void }) {
   const { current, isPlaying, currentTime, duration, seek } = usePlayer();
   const [showQueue, setShowQueue] = useState(false);
+  const [showLyrics, setShowLyrics] = useState(false);
   const [lyrics, setLyrics] = useState<string | null>(null);
+
+  // pull-down-to-dismiss (phones): offset in a ref so touchend reads the final
+  // value; scrollable children opt out via data-noswipe so lists still scroll
+  const startY = useRef<number | null>(null);
+  const pullRef = useRef(0);
+  const [pull, setPull] = useState(0);
 
   // lyrics live on the track detail, not on the queue entry
   const trackId = current?.id;
@@ -276,18 +286,56 @@ function FullPlayer({ onClose }: { onClose: () => void }) {
 
   if (!current) return null;
 
+  const onTouchStart = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest("[data-noswipe]")) return;
+    startY.current = e.touches[0].clientY;
+    pullRef.current = 0;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (startY.current === null || !e.touches[0]) return;
+    const dy = e.touches[0].clientY - startY.current;
+    // downward only — dragging up shouldn't lift the sheet off screen
+    if (dy > 0) {
+      pullRef.current = dy;
+      setPull(dy);
+    }
+  };
+  const onTouchEnd = () => {
+    if (pullRef.current >= DISMISS_THRESHOLD) onClose();
+    startY.current = null;
+    pullRef.current = 0;
+    setPull(0);
+  };
+
   return (
-    <div className="fixed inset-0 z-40 flex animate-slide-up flex-col bg-bg pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)]">
+    <div
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{
+        transform: pull ? `translateY(${pull * 0.5}px)` : undefined,
+        opacity: pull ? Math.max(0.6, 1 - pull / 500) : undefined,
+      }}
+      className="fixed inset-0 z-40 flex animate-slide-up flex-col bg-bg pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] transition-[transform,opacity]"
+    >
+      {/* grab handle: the phone affordance for "drag me down" */}
       <button
         onClick={onClose}
         aria-label="свернуть"
-        className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-full border border-border bg-surface text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        className="mx-auto mt-2 flex h-8 w-full max-w-[120px] shrink-0 items-center justify-center lg:hidden"
+      >
+        <span className="h-1 w-10 rounded-full bg-muted/40" />
+      </button>
+      <button
+        onClick={onClose}
+        aria-label="свернуть"
+        className="absolute right-4 top-4 z-10 hidden h-11 w-11 place-items-center rounded-full border border-border bg-surface text-muted transition-colors hover:bg-surface-hover hover:text-text lg:grid"
       >
         <IconChevronDown size={20} />
       </button>
 
-      <div className="flex min-h-0 flex-1 items-center justify-center gap-10 px-4 py-6 lg:px-10">
-        <div className="flex w-full max-w-sm flex-col items-center gap-4">
+      <div className="flex min-h-0 flex-1 items-center justify-center gap-10 px-4 pb-4 lg:px-10 lg:py-6">
+        <div className="flex w-full max-w-sm flex-col items-center justify-center gap-5">
           <div className="group relative w-full">
             <img
               src={current.cover}
@@ -317,6 +365,8 @@ function FullPlayer({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
+          {/* title, seek bar and sheet toggles travel together as one block */}
+          <div className="flex w-full flex-col gap-3">
           <div className="w-full text-center">
             <Link
               to={`/track/${current.id}`}
@@ -334,7 +384,7 @@ function FullPlayer({ onClose }: { onClose: () => void }) {
             </Link>
           </div>
 
-          <div className="flex w-full flex-col gap-1">
+          <div className="flex w-full flex-col gap-1" data-noswipe>
             <input
               type="range"
               min={0}
@@ -343,7 +393,7 @@ function FullPlayer({ onClose }: { onClose: () => void }) {
               value={currentTime}
               onChange={(e) => seek(Number(e.target.value))}
               aria-label="прогресс"
-              className="h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-hover accent-accent"
+              className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-hover accent-accent"
             />
             <div className="flex justify-between font-mono text-[11px] text-muted">
               <span>{formatTime(currentTime)}</span>
@@ -353,6 +403,27 @@ function FullPlayer({ onClose }: { onClose: () => void }) {
 
           <div className="hidden md:block">
             <VolumeControl />
+          </div>
+
+          {/* phones: reach the queue and lyrics without hunting the artwork */}
+          <div className="flex w-full gap-2 lg:hidden">
+            <button
+              onClick={() => setShowQueue((q) => !q)}
+              data-active={showQueue}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-card border border-border bg-surface py-2.5 text-sm text-muted transition-colors active:scale-[0.98] data-[active=true]:text-accent"
+            >
+              <IconPlaylist size={17} /> очередь
+            </button>
+            {lyrics && (
+              <button
+                onClick={() => setShowLyrics((s) => !s)}
+                data-active={showLyrics}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-card border border-border bg-surface py-2.5 text-sm text-muted transition-colors active:scale-[0.98] data-[active=true]:text-accent"
+              >
+                <IconMicrophone2 size={17} /> текст
+              </button>
+            )}
+          </div>
           </div>
         </div>
 
@@ -371,14 +442,17 @@ function FullPlayer({ onClose }: { onClose: () => void }) {
         )}
       </div>
 
-      {/* narrow screens get the queue as a full sheet instead of a side panel */}
+      {/* narrow screens get the queue and lyrics as sheets, one at a time */}
       {showQueue && (
-        <div className="flex min-h-0 flex-1 flex-col lg:hidden">
+        <div className="flex min-h-0 flex-1 flex-col lg:hidden" data-noswipe>
           <QueueList onClose={() => setShowQueue(false)} />
         </div>
       )}
-      {!showQueue && lyrics && (
-        <div className="flex max-h-[30vh] flex-col gap-2 overflow-hidden px-4 pb-4 lg:hidden">
+      {!showQueue && showLyrics && lyrics && (
+        <div
+          className="flex max-h-[38vh] flex-col gap-2 overflow-hidden px-4 pb-4 lg:hidden"
+          data-noswipe
+        >
           <h2 className="text-xs uppercase tracking-wide text-muted">текст</h2>
           <LyricsPanel content={lyrics} active />
         </div>
@@ -419,7 +493,11 @@ function QueueList({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* virtualized: the queue can hold the whole catalog */}
-      <div ref={scrollRef} className="mx-auto min-h-0 w-full max-w-2xl flex-1 overflow-y-auto">
+      <div
+        ref={scrollRef}
+        data-noswipe
+        className="mx-auto min-h-0 w-full max-w-2xl flex-1 overflow-y-auto"
+      >
         <div style={{ paddingTop: padTop, paddingBottom: padBottom }}>
           <ul className="flex flex-col">
             {queue.slice(start, end).map((t, n) => {
