@@ -41,7 +41,19 @@ playlistRoutes.get("/:id", async (c) => {
       ).length > 0
     : false;
 
-  return c.json({ ...pl, ownerUsername: ownerRow[0]?.username ?? null, saved, tracks: items });
+  // explicit projection: coverKey is an internal S3 key, don't hand it out
+  return c.json({
+    id: pl.id,
+    userId: pl.userId,
+    title: pl.title,
+    cover: pl.cover,
+    description: pl.description,
+    isPublic: pl.isPublic,
+    createdAt: pl.createdAt,
+    ownerUsername: ownerRow[0]?.username ?? null,
+    saved,
+    tracks: items,
+  });
 });
 
 const createSchema = z.object({

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { bodyLimit } from "hono/body-limit";
 import { eq, and, ne, sql } from "drizzle-orm";
 import { db } from "../db";
-import { tracks, trackVersions, artists, lyrics, trackArtists } from "../db/schema";
+import { tracks, trackVersions, artists, lyrics, trackArtists, albums } from "../db/schema";
 import { requireAuth, isAdminRole } from "../auth";
 import { putObject, deleteObject } from "../storage";
 import { readImageForm } from "../upload";
@@ -11,7 +11,9 @@ import { newId, param, type AppEnv } from "../types";
 
 // Files are uploaded THROUGH the api (same-origin) and streamed to storage,
 // so the browser never makes a cross-origin PUT (no S3 CORS needed).
-const uploadLimit = bodyLimit({ maxSize: 60 * 1024 * 1024 }); // 60MB
+const uploadLimit = bodyLimit({ maxSize: 60 * 1024 * 1024 }); // 60MB, audio
+// images are buffered whole in memory before validation — keep them small
+const imageLimit = bodyLimit({ maxSize: 10 * 1024 * 1024 });
 const VERSION_KINDS = ["demo", "release", "remaster", "live", "other"] as const;
 type VersionKind = (typeof VERSION_KINDS)[number];
 
@@ -29,6 +31,20 @@ async function ownsArtist(artistId: string, userId: string, role: Role) {
     .where(eq(artists.id, artistId))
     .limit(1);
   return found[0]?.userId === userId;
+}
+
+// An album belongs to an artist too: without this, a user who owns any artist
+// could file their track into someone else's album (and the victim couldn't
+// remove it, since removal checks the *track's* owner).
+async function canUseAlbum(albumId: string, userId: string, role: Role) {
+  if (isAdminRole(role)) return true;
+  const found = await db
+    .select({ artistId: albums.artistId })
+    .from(albums)
+    .where(eq(albums.id, albumId))
+    .limit(1);
+  if (!found[0]) return false;
+  return ownsArtist(found[0].artistId, userId, role);
 }
 
 async function ownsTrack(trackId: string, userId: string, role: Role) {
@@ -56,6 +72,8 @@ manageRoutes.post("/tracks", async (c) => {
   if (!body.success) return c.json({ error: "invalid input" }, 400);
   if (!(await ownsArtist(body.data.artistId, userId, c.get("role"))))
     return c.json({ error: "forbidden" }, 403);
+  if (body.data.albumId && !(await canUseAlbum(body.data.albumId, userId, c.get("role"))))
+    return c.json({ error: "чужой альбом" }, 403);
 
   const id = newId();
   await db.insert(tracks).values({
@@ -106,7 +124,7 @@ manageRoutes.post("/tracks/:id/versions", uploadLimit, async (c) => {
 });
 
 // POST /api/manage/tracks/:id/cover — multipart upload of a cover image
-manageRoutes.post("/tracks/:id/cover", uploadLimit, async (c) => {
+manageRoutes.post("/tracks/:id/cover", imageLimit, async (c) => {
   const userId = c.get("userId");
   const trackId = param(c, "id");
   if (!(await ownsTrack(trackId, userId, c.get("role")))) return c.json({ error: "forbidden" }, 403);
@@ -152,7 +170,7 @@ manageRoutes.put("/tracks/:id/lyrics", async (c) => {
 });
 
 // POST /api/manage/artists/:id/avatar — artist avatar (owner or admin)
-manageRoutes.post("/artists/:id/avatar", uploadLimit, async (c) => {
+manageRoutes.post("/artists/:id/avatar", imageLimit, async (c) => {
   const artistId = param(c, "id");
   if (!(await ownsArtist(artistId, c.get("userId"), c.get("role"))))
     return c.json({ error: "forbidden" }, 403);
@@ -181,6 +199,8 @@ manageRoutes.put("/tracks/:id", async (c) => {
     })
     .safeParse(await c.req.json().catch(() => null));
   if (!body.success) return c.json({ error: "invalid input" }, 400);
+  if (body.data.albumId && !(await canUseAlbum(body.data.albumId, c.get("userId"), c.get("role"))))
+    return c.json({ error: "чужой альбом" }, 403);
 
   // newly attached to an album -> append at the end instead of sitting at null forever
   if (body.data.albumId) {

@@ -11,7 +11,7 @@ import {
   currentUser,
   isAdminRole,
 } from "../auth";
-import { env } from "../env";
+import { redis } from "../redis";
 import { newId, slugify, type AppEnv } from "../types";
 
 export const authRoutes = new Hono<AppEnv>();
@@ -58,8 +58,9 @@ authRoutes.post("/signup", async (c) => {
     email,
     passwordHash: hashPassword(password),
     displayName: username,
-    // env-listed usernames become root right at signup (fresh DB bootstrap)
-    role: env.adminUsernames.includes(lower) ? "root" : "user",
+    // never grant a role from a name typed at signup — bootstrapRoots promotes
+    // listed usernames on boot, and only while the site has no root yet
+    role: "user",
   });
   await createSession(c, id);
   return c.json({ id, username });
@@ -67,10 +68,27 @@ authRoutes.post("/signup", async (c) => {
 
 const loginSchema = z.object({ login: z.string(), password: z.string() });
 
+// scrypt is deliberately slow, so unlimited attempts are both a brute-force
+// and a CPU-exhaustion vector. Count failures per login+IP over 15 minutes.
+const LOGIN_ATTEMPT_LIMIT = 10;
+const LOGIN_WINDOW = 15 * 60;
+
 authRoutes.post("/login", async (c) => {
   const body = loginSchema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) return c.json({ error: "invalid input" }, 400);
   const { login, password } = body.data;
+
+  const ip =
+    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+  const attemptKey = `login:${ip}:${login.toLowerCase()}`;
+  const attempts = Number((await redis.get(attemptKey)) ?? 0);
+  if (attempts >= LOGIN_ATTEMPT_LIMIT)
+    return c.json({ error: "слишком много попыток, подождите" }, 429);
+
+  const fail = async () => {
+    const n = await redis.incr(attemptKey);
+    if (n === 1) await redis.expire(attemptKey, LOGIN_WINDOW);
+  };
 
   const found = await db
     .select()
@@ -78,10 +96,13 @@ authRoutes.post("/login", async (c) => {
     .where(or(eq(users.username, login), eq(users.email, login)))
     .limit(1);
   const user = found[0];
-  if (!user || !verifyPassword(password, user.passwordHash))
+  if (!user || !verifyPassword(password, user.passwordHash)) {
+    await fail();
     return c.json({ error: "bad credentials" }, 401);
+  }
   if (user.bannedAt) return c.json({ error: "аккаунт заблокирован" }, 403);
 
+  await redis.del(attemptKey);
   await createSession(c, user.id);
   return c.json({ id: user.id, username: user.username });
 });

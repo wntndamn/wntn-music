@@ -114,6 +114,10 @@ trackRoutes.get("/:id", async (c) => {
 // ponytail: cron flush would catch the trailing <20; fine for a friends' site.
 trackRoutes.post("/play/:id", async (c) => {
   const id = param(c, "id");
+  // only count real tracks: an unchecked INCR lets anyone fill Redis with keys
+  const exists = await db.select({ id: tracks.id }).from(tracks).where(eq(tracks.id, id)).limit(1);
+  if (!exists.length) return c.json({ error: "not found" }, 404);
+
   const n = await redis.incr(`plays:${id}`);
   if (n % 20 === 0) {
     await db

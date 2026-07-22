@@ -27,9 +27,14 @@ export function verifyPassword(password: string, stored: string): boolean {
   return test.length === orig.length && timingSafeEqual(test, orig);
 }
 
+// sessions are tracked per user so a ban can revoke every one of them
+const sessionSetKey = (userId: string) => `user-sessions:${userId}`;
+
 export async function createSession(c: Context, userId: string) {
   const sid = randomBytes(24).toString("hex");
   await redis.set(`sess:${sid}`, userId, "EX", SESSION_TTL);
+  await redis.sadd(sessionSetKey(userId), sid);
+  await redis.expire(sessionSetKey(userId), SESSION_TTL);
   setCookie(c, COOKIE, sid, {
     httpOnly: true,
     sameSite: "Lax",
@@ -41,8 +46,20 @@ export async function createSession(c: Context, userId: string) {
 
 export async function destroySession(c: Context) {
   const sid = getCookie(c, COOKIE);
-  if (sid) await redis.del(`sess:${sid}`);
+  if (sid) {
+    const userId = await redis.get(`sess:${sid}`);
+    await redis.del(`sess:${sid}`);
+    if (userId) await redis.srem(sessionSetKey(userId), sid);
+  }
   deleteCookie(c, COOKIE, { path: "/" });
+}
+
+// Ban must cut existing sessions: read-only routes resolve the user without
+// requireAuth, so a live session would keep working until they mutate something.
+export async function revokeAllSessions(userId: string) {
+  const sids = await redis.smembers(sessionSetKey(userId));
+  if (sids.length) await redis.del(...sids.map((s) => `sess:${s}`));
+  await redis.del(sessionSetKey(userId));
 }
 
 export async function currentUserId(c: Context): Promise<string | null> {
@@ -101,12 +118,20 @@ export async function requireRoot(c: Context, next: Next) {
   await next();
 }
 
-// Promote usernames from ADMIN_USERNAMES (env) to root on startup — bootstrap only,
-// day-to-day admin grants live in the DB (users.role) and are managed from /admin.
+// One-time bootstrap: promote ADMIN_USERNAMES to root only while no root exists
+// yet. Running unconditionally would let anyone who registers a listed-but-
+// unclaimed username become root, and would silently unban a listed account on
+// every restart. After the first root exists, grants happen in /admin.
 export async function bootstrapRoots() {
   if (!env.adminUsernames.length) return;
+  const existing = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.role, "root"))
+    .limit(1);
+  if (existing.length) return;
   await db
     .update(users)
-    .set({ role: "root", bannedAt: null })
+    .set({ role: "root" })
     .where(inArray(sql`lower(${users.username})`, env.adminUsernames));
 }

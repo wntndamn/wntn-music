@@ -29,8 +29,10 @@ export const env = {
     publicEndpoint:
       process.env.S3_PUBLIC_ENDPOINT ?? process.env.S3_ENDPOINT ?? "http://localhost:9000",
     region: process.env.S3_REGION ?? "us-east-1",
-    accessKeyId: process.env.S3_ACCESS_KEY_ID ?? "wntn",
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? "wntn-dev-secret",
+    // no fallbacks: a prod deploy that forgets these must fail loudly rather
+    // than run on credentials published in this repo
+    accessKeyId: req("S3_ACCESS_KEY_ID"),
+    secretAccessKey: req("S3_SECRET_ACCESS_KEY"),
     bucket: process.env.S3_BUCKET ?? "wntn-audio",
     // rustfs/MinIO need path-style; set S3_FORCE_PATH_STYLE=false for R2/AWS.
     forcePathStyle: process.env.S3_FORCE_PATH_STYLE !== "false",

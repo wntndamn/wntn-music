@@ -3,7 +3,7 @@ import { z } from "zod";
 import { eq, and, ne, desc, isNotNull, ilike, or } from "drizzle-orm";
 import { db } from "../db";
 import { claimRequests, artists, users } from "../db/schema";
-import { requireAdmin, requireRoot } from "../auth";
+import { requireAdmin, requireRoot, revokeAllSessions } from "../auth";
 import { param, type AppEnv } from "../types";
 
 export const adminRoutes = new Hono<AppEnv>();
@@ -44,6 +44,15 @@ adminRoutes.post("/claims/:id/approve", async (c) => {
     .where(eq(artists.id, req.artistId))
     .limit(1);
   if (art[0]?.userId) return c.json({ error: "артист уже занят" }, 409);
+
+  // the requester may have claimed another artist between request and approval
+  const already = await db
+    .select({ id: artists.id })
+    .from(artists)
+    .where(eq(artists.userId, req.userId))
+    .limit(1);
+  if (already.length)
+    return c.json({ error: "у заявителя уже есть артист" }, 409);
 
   await db.update(artists).set({ userId: req.userId }).where(eq(artists.id, req.artistId));
   await db
@@ -117,11 +126,17 @@ adminRoutes.post("/users/:id/ban", async (c) => {
   if (rank[c.get("role")] <= rank[target.role])
     return c.json({ error: "недостаточно прав" }, 403);
   await db.update(users).set({ bannedAt: new Date() }).where(eq(users.id, target.id));
+  await revokeAllSessions(target.id);
   return c.json({ ok: true });
 });
 
+// same rank rule as ban: an admin must not undo a root's moderation
 adminRoutes.post("/users/:id/unban", async (c) => {
-  await db.update(users).set({ bannedAt: null }).where(eq(users.id, param(c, "id")));
+  const target = await getUserRow(param(c, "id"));
+  if (!target) return c.json({ error: "not found" }, 404);
+  if (rank[c.get("role")] <= rank[target.role])
+    return c.json({ error: "недостаточно прав" }, 403);
+  await db.update(users).set({ bannedAt: null }).where(eq(users.id, target.id));
   return c.json({ ok: true });
 });
 

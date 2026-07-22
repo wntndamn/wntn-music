@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, ne, sql, count } from "drizzle-orm";
 import { db } from "../db";
-import { artists, albums, tracks, follows, claimRequests, trackArtists } from "../db/schema";
+import { artists, albums, tracks, follows, claimRequests, trackArtists, users } from "../db/schema";
 import { requireAuth, currentUserId } from "../auth";
 import { newId, slugify, param, type AppEnv } from "../types";
 
@@ -95,6 +95,22 @@ artistRoutes.post("/", requireAuth, async (c) => {
     .where(eq(artists.slug, slug))
     .limit(1);
   if (exists.length) return c.json({ error: "slug taken" }, 409);
+
+  // one artist per user — same rule the claim flow enforces
+  const owned = await db
+    .select({ id: artists.id })
+    .from(artists)
+    .where(eq(artists.userId, userId))
+    .limit(1);
+  if (owned.length) return c.json({ error: "у вас уже есть профиль артиста" }, 409);
+
+  // mirror of the signup guard: an artist must not impersonate an existing user
+  const clash = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(sql`lower(${users.username}) = ${body.data.name.toLowerCase()}`, ne(users.id, userId)))
+    .limit(1);
+  if (clash.length) return c.json({ error: "имя занято пользователем" }, 409);
 
   const id = newId();
   await db.insert(artists).values({ id, userId, slug, name: body.data.name, bio: body.data.bio });
