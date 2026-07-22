@@ -11,30 +11,41 @@ export default function TrackCard({ track, queue }: { track: Track; queue: Track
   return (
     <div className="group flex flex-col rounded-card bg-surface p-2 transition-all duration-200 hover:-translate-y-1 hover:bg-surface-hover">
       <div className="relative aspect-square overflow-hidden rounded-md">
-        <div className="absolute right-1 top-1 z-10 rounded-full bg-bg/60 backdrop-blur">
+        {/* like sits outside the play button — buttons can't nest */}
+        <div className="absolute right-1 top-1 z-20 rounded-full bg-bg/60 backdrop-blur">
           <LikeButton trackId={track.id} size={16} />
         </div>
-        <img
-          src={track.cover}
-          alt={track.title}
-          loading="lazy"
-          className="h-full w-full object-cover"
-          onError={(e) => {
-            const img = e.currentTarget;
-            if (!img.src.endsWith("/covers/default.jpg")) img.src = "/covers/default.jpg";
-          }}
-        />
+        {/* the whole artwork is the play target, not just the small button */}
         <button
           onClick={() => (active ? toggle() : play(track, queue))}
           data-active={active}
           aria-label={active && isPlaying ? "Пауза" : "Играть"}
-          className="absolute bottom-2 right-2 grid h-11 w-11 translate-y-1 place-items-center rounded-full bg-accent text-white opacity-0 shadow-lg transition-all hover:bg-accent-hover active:scale-95 group-hover:translate-y-0 group-hover:opacity-100 data-[active=true]:translate-y-0 data-[active=true]:opacity-100"
+          className="group/play absolute inset-0 block h-full w-full"
         >
-          {active && isPlaying ? (
-            <IconPlayerPauseFilled size={20} />
-          ) : (
-            <IconPlayerPlayFilled size={20} />
-          )}
+          <img
+            src={track.cover}
+            alt={track.title}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            onError={(e) => {
+              const img = e.currentTarget;
+              if (!img.src.endsWith("/covers/default.jpg")) img.src = "/covers/default.jpg";
+            }}
+          />
+          <span
+            data-active={active}
+            className="absolute inset-0 bg-black/25 opacity-0 transition-opacity group-hover:opacity-100 data-[active=true]:opacity-100"
+          />
+          <span
+            data-active={active}
+            className="absolute bottom-2 right-2 grid h-11 w-11 translate-y-1 place-items-center rounded-full bg-accent text-white opacity-0 shadow-lg transition-all group-hover:translate-y-0 group-hover:opacity-100 group-active/play:scale-95 data-[active=true]:translate-y-0 data-[active=true]:opacity-100"
+          >
+            {active && isPlaying ? (
+              <IconPlayerPauseFilled size={20} />
+            ) : (
+              <IconPlayerPlayFilled size={20} />
+            )}
+          </span>
         </button>
       </div>
       <div className="px-1 pt-2">

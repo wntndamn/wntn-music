@@ -196,6 +196,16 @@ export type HomePopularTrack = {
   authorSlug: string;
   song: string | null;
 };
+export type SearchResult = {
+  query: string;
+  tracks: HomePopularTrack[];
+  artists: HomeArtist[];
+  albums: HomeAlbum[];
+};
+export const searchApi = {
+  query: (q: string) => api<SearchResult>(`/search?q=${encodeURIComponent(q)}`),
+};
+
 export const homeApi = {
   get: () =>
     api<{

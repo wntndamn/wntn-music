@@ -19,6 +19,7 @@ import {
 import { toTrack, type Track } from "../lib/tracks";
 import TrackGrid, { GridSkeleton } from "./TrackGrid";
 import EqBars from "./EqBars";
+import TrackMenu from "./TrackMenu";
 
 const ALBUM_TYPE_RU: Record<string, string> = { album: "альбом", ep: "EP", single: "сингл" };
 const NEW_RELEASE_DAYS = 30;
@@ -293,10 +294,11 @@ function PopularRail({ tracks }: { tracks: Track[] }) {
               onClick={() => addToQueue(t)}
               aria-label="в очередь"
               title="добавить в очередь"
-              className="grid h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-all hover:bg-surface-hover hover:text-text group-hover:opacity-100"
+              className="hidden h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-all hover:bg-surface-hover hover:text-text group-hover:opacity-100 sm:grid"
             >
               <IconPlus size={16} />
             </button>
+            <TrackMenu track={t} />
           </li>
         ))}
       </ul>

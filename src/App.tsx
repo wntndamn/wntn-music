@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Routes, Route, Link } from "react-router-dom";
-import { IconBrandTelegram } from "@tabler/icons-react";
+import { IconBrandTelegram, IconSearch } from "@tabler/icons-react";
 import Home from "./components/Home";
 import ArtistPage from "./components/ArtistPage";
 import TrackPage from "./components/TrackPage";
@@ -12,6 +12,7 @@ import Studio from "./components/Studio";
 import AdminPage from "./components/AdminPage";
 import UserPage from "./components/UserPage";
 import AlbumPage from "./components/AlbumPage";
+import SearchPage from "./components/SearchPage";
 import UserMenu from "./components/UserMenu";
 
 function useTheme() {
@@ -36,6 +37,14 @@ export default function App() {
             wntn<span className="text-accent">.</span>music
           </Link>
           <div className="flex items-center gap-2">
+            <Link
+              to="/search"
+              aria-label="поиск"
+              title="поиск"
+              className="grid h-9 w-9 place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-text"
+            >
+              <IconSearch size={18} />
+            </Link>
             <a
               href="https://t.me/wntnmusic"
               target="_blank"
@@ -58,6 +67,7 @@ export default function App() {
           <Route path="/album/:id" element={<AlbumPage />} />
           <Route path="/playlist/:id" element={<PlaylistPage />} />
           <Route path="/u/:username" element={<UserPage />} />
+          <Route path="/search" element={<SearchPage />} />
           <Route path="/library" element={<Library />} />
           <Route path="/studio" element={<Studio />} />
           <Route path="/admin" element={<AdminPage />} />

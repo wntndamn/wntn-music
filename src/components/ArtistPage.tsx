@@ -21,6 +21,7 @@ import { GridSkeleton } from "./TrackGrid";
 import FollowButton from "./FollowButton";
 import LikeButton from "./LikeButton";
 import EqBars from "./EqBars";
+import TrackMenu from "./TrackMenu";
 
 const ALBUM_TYPE_RU: Record<string, string> = { album: "альбом", ep: "EP", single: "сингл" };
 
@@ -174,6 +175,7 @@ export default function ArtistPage() {
                     <IconPlus size={16} />
                   </button>
                   <LikeButton trackId={t.id} size={16} />
+                  <TrackMenu track={t} />
                 </li>
               ))}
             </ul>
@@ -313,6 +315,7 @@ function TrackRows({ tracks, queue }: { tracks: Track[]; queue: Track[] }) {
             <IconPlus size={16} />
           </button>
           <LikeButton trackId={t.id} size={16} />
+          <TrackMenu track={t} />
         </li>
       ))}
     </ul>
