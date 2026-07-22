@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { IconSearch, IconHeadphones, IconPlus, IconMusic } from "@tabler/icons-react";
+import { IconSearch, IconPlus, IconMusic } from "@tabler/icons-react";
 import { searchApi, type SearchResult } from "../lib/api";
 import { toTrack, type Track } from "../lib/tracks";
 import { usePlayer } from "../hooks/usePlayer";
-import EqBars from "./EqBars";
 import LikeButton from "./LikeButton";
 import TrackMenu from "./TrackMenu";
+import TrackRow from "./TrackRow";
 
 const ALBUM_TYPE_RU: Record<string, string> = { album: "альбом", ep: "EP", single: "сингл" };
 
@@ -16,7 +16,7 @@ export default function SearchPage() {
   const [input, setInput] = useState(q);
   const [result, setResult] = useState<SearchResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const { play, addToQueue, current, isPlaying, toggle } = usePlayer();
+  const { addToQueue } = usePlayer();
 
   // keep the box in sync when the query changes from outside (header, history)
   useEffect(() => setInput(q), [q]);
@@ -119,36 +119,26 @@ export default function SearchPage() {
           <h2 className="font-display text-xl">треки</h2>
           <ul className="flex flex-col">
             {playable.map((t, i) => (
-              <li
+              <TrackRow
                 key={t.id}
-                className="group flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-surface"
-              >
-                <span className="flex w-5 justify-end font-mono text-xs text-muted">
-                  {current?.id === t.id ? <EqBars playing={isPlaying} /> : i + 1}
-                </span>
-                <img src={t.cover} alt="" className="h-10 w-10 rounded object-cover" />
-                <button
-                  onClick={() => (current?.id === t.id ? toggle() : play(t, playable))}
-                  data-current={current?.id === t.id}
-                  className="min-w-0 flex-1 text-left text-sm transition-colors hover:underline data-[current=true]:font-medium data-[current=true]:text-accent"
-                >
-                  <span className="block truncate">{t.title}</span>
-                  <span className="block truncate text-xs text-muted">{t.author}</span>
-                </button>
-                <span className="hidden items-center gap-1 font-mono text-xs text-muted sm:flex">
-                  <IconHeadphones size={13} /> {t.plays ?? 0}
-                </span>
-                <button
-                  onClick={() => addToQueue(t)}
-                  aria-label="в очередь"
-                  title="добавить в очередь"
-                  className="hidden h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-all hover:bg-surface-hover hover:text-text group-hover:opacity-100 sm:grid"
-                >
-                  <IconPlus size={16} />
-                </button>
-                <LikeButton trackId={t.id} size={16} />
-                <TrackMenu track={t} />
-              </li>
+                track={t}
+                index={i}
+                queue={playable}
+                right={
+                  <>
+                    <button
+                      onClick={() => addToQueue(t)}
+                      aria-label="в очередь"
+                      title="добавить в очередь"
+                      className="hidden h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-all hover:bg-surface-hover hover:text-text group-hover:opacity-100 sm:grid"
+                    >
+                      <IconPlus size={16} />
+                    </button>
+                    <LikeButton trackId={t.id} size={16} />
+                    <TrackMenu track={t} />
+                  </>
+                }
+              />
             ))}
           </ul>
         </section>

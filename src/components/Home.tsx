@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import {
   IconPlayerPlayFilled,
   IconPlayerPauseFilled,
-  IconHeadphones,
   IconPlus,
   IconMusic,
 } from "@tabler/icons-react";
@@ -18,8 +17,8 @@ import {
 } from "../lib/api";
 import { toTrack, type Track } from "../lib/tracks";
 import TrackGrid, { GridSkeleton } from "./TrackGrid";
-import EqBars from "./EqBars";
 import TrackMenu from "./TrackMenu";
+import TrackRow from "./TrackRow";
 
 const ALBUM_TYPE_RU: Record<string, string> = { album: "альбом", ep: "EP", single: "сингл" };
 const NEW_RELEASE_DAYS = 30;
@@ -264,42 +263,32 @@ function Hero({
 }
 
 function PopularRail({ tracks }: { tracks: Track[] }) {
-  const { play, addToQueue, current, isPlaying, toggle } = usePlayer();
+  const { addToQueue } = usePlayer();
 
   return (
     <section className="flex flex-col gap-3">
       <h2 className="font-display text-xl">популярные треки</h2>
       <ul className="grid gap-x-6 md:grid-cols-2">
         {tracks.map((t, i) => (
-          <li
+          <TrackRow
             key={t.id}
-            className="group flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-surface"
-          >
-            <span className="flex w-5 justify-end font-mono text-xs text-muted">
-              {current?.id === t.id ? <EqBars playing={isPlaying} /> : i + 1}
-            </span>
-            <img src={t.cover} alt="" className="h-10 w-10 rounded object-cover" />
-            <button
-              onClick={() => (current?.id === t.id ? toggle() : play(t, tracks))}
-              data-current={current?.id === t.id}
-              className="min-w-0 flex-1 truncate text-left text-sm transition-colors hover:underline data-[current=true]:font-medium data-[current=true]:text-accent"
-            >
-              {t.title}
-              <span className="block truncate text-xs text-muted">{t.author}</span>
-            </button>
-            <span className="flex items-center gap-1 font-mono text-xs text-muted">
-              <IconHeadphones size={13} /> {t.plays ?? 0}
-            </span>
-            <button
-              onClick={() => addToQueue(t)}
-              aria-label="в очередь"
-              title="добавить в очередь"
-              className="hidden h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-all hover:bg-surface-hover hover:text-text group-hover:opacity-100 sm:grid"
-            >
-              <IconPlus size={16} />
-            </button>
-            <TrackMenu track={t} />
-          </li>
+            track={t}
+            index={i}
+            queue={tracks}
+            right={
+              <>
+                <button
+                  onClick={() => addToQueue(t)}
+                  aria-label="в очередь"
+                  title="добавить в очередь"
+                  className="hidden h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-all hover:bg-surface-hover hover:text-text group-hover:opacity-100 sm:grid"
+                >
+                  <IconPlus size={16} />
+                </button>
+                <TrackMenu track={t} />
+              </>
+            }
+          />
         ))}
       </ul>
     </section>

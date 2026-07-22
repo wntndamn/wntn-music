@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   IconPlayerPlayFilled,
-  IconHeadphones,
   IconChevronUp,
   IconChevronDown,
   IconHeart,
@@ -14,12 +13,14 @@ import { usePlayer } from "../hooks/usePlayer";
 import { useAuth } from "../hooks/useAuth";
 import type { Track } from "../lib/tracks";
 import EditableImage from "./EditableImage";
+import TrackRow from "./TrackRow";
+import TrackMenu from "./TrackMenu";
 
 const TYPE_RU: Record<string, string> = { album: "альбом", ep: "EP", single: "сингл" };
 
 export default function AlbumPage() {
   const { id } = useParams();
-  const { play, addToQueue, current, toggle } = usePlayer();
+  const { play, addToQueue } = usePlayer();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [album, setAlbum] = useState<AlbumDetail | null>(null);
@@ -147,78 +148,72 @@ export default function AlbumPage() {
         <ul className="flex flex-col">
           {album.tracks.map((t, i) => {
             const pt = playable.find((x) => x.id === t.id);
-            return (
-              <li
-                key={t.id}
-                className="group flex items-center gap-3 rounded-md px-2 py-2 hover:bg-surface"
-              >
-                <span className="w-5 text-right font-mono text-xs text-muted">
-                  {current?.id === t.id ? "▶" : (t.trackNumber ?? i + 1)}
-                </span>
-                <img
-                  src={t.cover ?? album.cover ?? "/covers/default.jpg"}
-                  alt=""
-                  className="h-10 w-10 rounded object-cover"
-                />
-                {/* clicking a row plays it and makes the album the queue */}
-                <button
-                  onClick={() => {
-                    if (!pt) return;
-                    if (current?.id === t.id) toggle();
-                    else play(pt, playable);
-                  }}
-                  disabled={!pt}
-                  className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left text-sm hover:underline disabled:opacity-50 disabled:hover:no-underline"
-                >
-                  <span
-                    data-current={current?.id === t.id}
-                    className="truncate data-[current=true]:font-medium data-[current=true]:text-accent"
-                  >
-                    {t.title}
+            // a track with no uploaded audio still belongs in the listing
+            if (!pt)
+              return (
+                <li key={t.id} className="flex items-center gap-3 rounded-md px-2 py-2 opacity-50">
+                  <span className="w-5 text-right font-mono text-xs text-muted">
+                    {t.trackNumber ?? i + 1}
                   </span>
-                  {t.explicit && (
-                    <span
-                      title="explicit"
-                      className="rounded border border-border px-1 font-mono text-[10px] text-muted"
-                    >
-                      E
-                    </span>
-                  )}
-                </button>
-                <span className="flex items-center gap-1 font-mono text-xs text-muted">
-                  <IconHeadphones size={13} /> {t.plays}
-                </span>
-                {pt && (
-                  <button
-                    onClick={() => addToQueue(pt)}
-                    aria-label="в очередь"
-                    title="добавить в очередь"
-                    className="grid h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-opacity hover:bg-surface-hover hover:text-text group-hover:opacity-100"
-                  >
-                    <IconPlus size={16} />
-                  </button>
-                )}
-                {album.canManage && (
-                  <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
+                  <img
+                    src={t.cover ?? album.cover ?? "/covers/default.jpg"}
+                    alt=""
+                    className="h-10 w-10 rounded object-cover"
+                  />
+                  <span className="min-w-0 flex-1 truncate text-sm">{t.title}</span>
+                  <span className="text-xs text-muted">нет аудио</span>
+                </li>
+              );
+            return (
+              <TrackRow
+                key={t.id}
+                track={pt}
+                index={i}
+                number={t.trackNumber ?? i + 1}
+                queue={playable}
+                subtitle={album.artistName}
+                right={
+                  <>
+                    {t.explicit && (
+                      <span
+                        title="explicit"
+                        className="rounded border border-border px-1 font-mono text-[10px] text-muted"
+                      >
+                        E
+                      </span>
+                    )}
                     <button
-                      onClick={() => void move(i, -1)}
-                      disabled={i === 0}
-                      aria-label="выше"
-                      className="grid h-4 w-6 place-items-center text-muted hover:text-text disabled:opacity-30"
+                      onClick={() => addToQueue(pt)}
+                      aria-label="в очередь"
+                      title="добавить в очередь"
+                      className="hidden h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-opacity hover:bg-surface-hover hover:text-text group-hover:opacity-100 sm:grid"
                     >
-                      <IconChevronUp size={13} />
+                      <IconPlus size={16} />
                     </button>
-                    <button
-                      onClick={() => void move(i, 1)}
-                      disabled={i === album.tracks.length - 1}
-                      aria-label="ниже"
-                      className="grid h-4 w-6 place-items-center text-muted hover:text-text disabled:opacity-30"
-                    >
-                      <IconChevronDown size={13} />
-                    </button>
-                  </div>
-                )}
-              </li>
+                    <TrackMenu track={pt} />
+                    {album.canManage && (
+                      <span className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
+                        <button
+                          onClick={() => void move(i, -1)}
+                          disabled={i === 0}
+                          aria-label="выше"
+                          className="grid h-4 w-6 place-items-center text-muted hover:text-text disabled:opacity-30"
+                        >
+                          <IconChevronUp size={13} />
+                        </button>
+                        <button
+                          onClick={() => void move(i, 1)}
+                          disabled={i === album.tracks.length - 1}
+                          aria-label="ниже"
+                          className="grid h-4 w-6 place-items-center text-muted hover:text-text disabled:opacity-30"
+                        >
+                          <IconChevronDown size={13} />
+                        </button>
+                      </span>
+                    )}
+                  </>
+                }
+              />
             );
           })}
         </ul>

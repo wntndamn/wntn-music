@@ -20,8 +20,8 @@ import { artistApi, type ArtistProfile } from "../lib/api";
 import { GridSkeleton } from "./TrackGrid";
 import FollowButton from "./FollowButton";
 import LikeButton from "./LikeButton";
-import EqBars from "./EqBars";
 import TrackMenu from "./TrackMenu";
+import TrackRow from "./TrackRow";
 
 const ALBUM_TYPE_RU: Record<string, string> = { album: "альбом", ep: "EP", single: "сингл" };
 
@@ -147,36 +147,26 @@ export default function ArtistPage() {
           ) : (
             <ul className="flex flex-col">
               {popular.map((t, i) => (
-                <li
+                <TrackRow
                   key={t.id}
-                  className="group flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-surface"
-                >
-                  <span className="flex w-5 justify-end font-mono text-xs text-muted">
-                    {current?.id === t.id ? <EqBars playing={isPlaying} /> : i + 1}
-                  </span>
-                  <img src={t.cover} alt="" className="h-10 w-10 rounded object-cover" />
-                  <button
-                    onClick={() => (current?.id === t.id ? toggle() : play(t, mine))}
-                    data-current={current?.id === t.id}
-                    className="min-w-0 flex-1 truncate text-left text-sm transition-colors hover:underline data-[current=true]:font-medium data-[current=true]:text-accent"
-                  >
-                    {t.title}
-                    {t.features?.length ? (
-                      <span className="text-muted"> feat. {t.features.map((f) => f.name).join(", ")}</span>
-                    ) : null}
-                  </button>
-                  <span className="font-mono text-xs text-muted">{t.plays ?? 0}</span>
-                  <button
-                    onClick={() => addToQueue(t)}
-                    aria-label="в очередь"
-                    title="добавить в очередь"
-                    className="grid h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-all hover:bg-surface-hover hover:text-text group-hover:opacity-100"
-                  >
-                    <IconPlus size={16} />
-                  </button>
-                  <LikeButton trackId={t.id} size={16} />
-                  <TrackMenu track={t} />
-                </li>
+                  track={t}
+                  index={i}
+                  queue={mine}
+                  right={
+                    <>
+                      <button
+                        onClick={() => addToQueue(t)}
+                        aria-label="в очередь"
+                        title="добавить в очередь"
+                        className="hidden h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-all hover:bg-surface-hover hover:text-text group-hover:opacity-100 sm:grid"
+                      >
+                        <IconPlus size={16} />
+                      </button>
+                      <LikeButton trackId={t.id} size={16} />
+                      <TrackMenu track={t} />
+                    </>
+                  }
+                />
               ))}
             </ul>
           )}
@@ -285,38 +275,33 @@ export default function ArtistPage() {
 }
 
 function TrackRows({ tracks, queue }: { tracks: Track[]; queue: Track[] }) {
-  const { play, addToQueue, current, isPlaying, toggle } = usePlayer();
+  const { addToQueue } = usePlayer();
   if (!tracks.length) return <p className="text-sm text-muted">треков пока нет</p>;
 
   return (
     <ul className="flex flex-col">
       {tracks.map((t, i) => (
-        <li
+        <TrackRow
           key={t.id}
-          className="group flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-surface"
-        >
-          <span className="flex w-6 justify-end font-mono text-xs text-muted">
-            {current?.id === t.id ? <EqBars playing={isPlaying} /> : i + 1}
-          </span>
-          <img src={t.cover} alt="" className="h-10 w-10 rounded object-cover" />
-          <button
-            onClick={() => (current?.id === t.id ? toggle() : play(t, queue))}
-            data-current={current?.id === t.id}
-            className="min-w-0 flex-1 truncate text-left text-sm transition-colors hover:underline data-[current=true]:font-medium data-[current=true]:text-accent"
-          >
-            {t.title}
-          </button>
-          <button
-            onClick={() => addToQueue(t)}
-            aria-label="в очередь"
-            title="добавить в очередь"
-            className="grid h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-all hover:bg-surface-hover hover:text-text group-hover:opacity-100"
-          >
-            <IconPlus size={16} />
-          </button>
-          <LikeButton trackId={t.id} size={16} />
-          <TrackMenu track={t} />
-        </li>
+          track={t}
+          index={i}
+          queue={queue}
+          showPlays={false}
+          right={
+            <>
+              <button
+                onClick={() => addToQueue(t)}
+                aria-label="в очередь"
+                title="добавить в очередь"
+                className="hidden h-8 w-8 place-items-center rounded-full text-muted opacity-0 transition-all hover:bg-surface-hover hover:text-text group-hover:opacity-100 sm:grid"
+              >
+                <IconPlus size={16} />
+              </button>
+              <LikeButton trackId={t.id} size={16} />
+              <TrackMenu track={t} />
+            </>
+          }
+        />
       ))}
     </ul>
   );
