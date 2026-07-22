@@ -75,7 +75,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // handlers read these through refs so the channel is only wired up once
   const syncRef = useRef(syncMode);
   syncRef.current = syncMode;
-  const applyingRemote = useRef(false);
+  // id of a track adopted from another tab (mirror it, don't start playing)
+  const mirroredId = useRef<string | null>(null);
+  // set while a track switch is waiting for the element to become playable
+  const wantPlay = useRef(false);
 
   // ended-handler and media-session action handlers need the latest next()/prev();
   // keep them in refs to dodge stale closures (registered once, called later)
@@ -89,19 +92,30 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const onTime = () => setCurrentTime(audio.currentTime);
     const onMeta = () => setDuration(audio.duration || 0);
     const onEnd = () => endRef.current();
-    const onPlay = () => setIsPlaying(true);
+    const onPlay = () => {
+      wantPlay.current = false;
+      setIsPlaying(true);
+    };
     const onPause = () => setIsPlaying(false);
+    // the element is ready now — honour a play that lost the race with load()
+    const onCanPlay = () => {
+      if (!wantPlay.current) return;
+      wantPlay.current = false;
+      audio.play().catch(() => {});
+    };
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onMeta);
     audio.addEventListener("ended", onEnd);
     audio.addEventListener("play", onPlay);
     audio.addEventListener("pause", onPause);
+    audio.addEventListener("canplay", onCanPlay);
     return () => {
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("loadedmetadata", onMeta);
       audio.removeEventListener("ended", onEnd);
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("canplay", onCanPlay);
     };
   }, []);
 
@@ -118,7 +132,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (msg.type === "state" && syncRef.current === "full") {
-        applyingRemote.current = true;
+        mirroredId.current = msg.queue[msg.index]?.id ?? null;
         setQueue(msg.queue);
         setIndex(msg.index);
         // the other tab keeps the audio; mirror position without stealing playback
@@ -158,12 +172,24 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (!audio || !current) return;
     audio.src = current.song;
     audio.volume = volume;
-    // a track that arrived from another tab is mirrored, not taken over
-    if (applyingRemote.current) {
-      applyingRemote.current = false;
+    audio.load();
+
+    // A track adopted from another tab is mirrored, not taken over. Keyed by id
+    // rather than a bare flag: a remote update that doesn't change the track
+    // would otherwise leave the flag set and mute the *next* real switch.
+    if (mirroredId.current === current.id) {
+      mirroredId.current = null;
       return;
     }
-    void audio.play().catch(() => {});
+
+    // play() right after setting src races the new load and rejects with
+    // AbortError, which used to silently leave playback stopped. Ask to play,
+    // and let the canplay handler start it once the element is actually ready.
+    wantPlay.current = true;
+    audio.play().catch((err: DOMException) => {
+      if (err.name !== "NotAllowedError") return; // AbortError -> canplay retries
+      wantPlay.current = false; // autoplay blocked: wait for a user gesture
+    });
     void trackApi.play(current.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id]);
