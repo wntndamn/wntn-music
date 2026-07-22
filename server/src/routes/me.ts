@@ -3,7 +3,17 @@ import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { bodyLimit } from "hono/body-limit";
 import { db } from "../db";
-import { likes, playlists, tracks, artists, follows, users, savedAlbums, albums } from "../db/schema";
+import {
+  likes,
+  playlists,
+  tracks,
+  artists,
+  follows,
+  users,
+  savedAlbums,
+  albums,
+  playlistFollows,
+} from "../db/schema";
 import { requireAuth } from "../auth";
 import { putObject } from "../storage";
 import { readImageForm } from "../upload";
@@ -29,7 +39,7 @@ meRoutes.post("/avatar", bodyLimit({ maxSize: 10 * 1024 * 1024 }), async (c) => 
 // GET /api/me/library — liked tracks + own playlists + followed artists + saved albums
 meRoutes.get("/library", async (c) => {
   const userId = c.get("userId");
-  const [liked, myPlaylists, following, mySavedAlbums] = await Promise.all([
+  const [liked, myPlaylists, following, mySavedAlbums, savedPlaylists] = await Promise.all([
     db
       .select({ id: tracks.id, title: tracks.title, cover: tracks.cover })
       .from(likes)
@@ -53,8 +63,25 @@ meRoutes.get("/library", async (c) => {
       .innerJoin(albums, eq(savedAlbums.albumId, albums.id))
       .innerJoin(artists, eq(albums.artistId, artists.id))
       .where(eq(savedAlbums.userId, userId)),
+    db
+      .select({
+        id: playlists.id,
+        title: playlists.title,
+        cover: playlists.cover,
+        ownerUsername: users.username,
+      })
+      .from(playlistFollows)
+      .innerJoin(playlists, eq(playlistFollows.playlistId, playlists.id))
+      .innerJoin(users, eq(playlists.userId, users.id))
+      .where(eq(playlistFollows.userId, userId)),
   ]);
-  return c.json({ likes: liked, playlists: myPlaylists, following, savedAlbums: mySavedAlbums });
+  return c.json({
+    likes: liked,
+    playlists: myPlaylists,
+    following,
+    savedAlbums: mySavedAlbums,
+    savedPlaylists,
+  });
 });
 
 // POST /api/me/saved-albums/:albumId — toggle

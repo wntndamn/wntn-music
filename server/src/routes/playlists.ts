@@ -3,7 +3,7 @@ import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { bodyLimit } from "hono/body-limit";
 import { db } from "../db";
-import { playlists, playlistTracks, tracks } from "../db/schema";
+import { playlists, playlistTracks, tracks, playlistFollows, users } from "../db/schema";
 import { requireAuth, currentUserId } from "../auth";
 import { putObject } from "../storage";
 import { readImageForm } from "../upload";
@@ -26,7 +26,22 @@ playlistRoutes.get("/:id", async (c) => {
     .innerJoin(tracks, eq(playlistTracks.trackId, tracks.id))
     .where(eq(playlistTracks.playlistId, id));
   items.sort((a, b) => a.position - b.position);
-  return c.json({ ...pl, tracks: items });
+
+  const [ownerRow, uid] = await Promise.all([
+    db.select({ username: users.username }).from(users).where(eq(users.id, pl.userId)).limit(1),
+    currentUserId(c),
+  ]);
+  const saved = uid
+    ? (
+        await db
+          .select({ userId: playlistFollows.userId })
+          .from(playlistFollows)
+          .where(and(eq(playlistFollows.userId, uid), eq(playlistFollows.playlistId, id)))
+          .limit(1)
+      ).length > 0
+    : false;
+
+  return c.json({ ...pl, ownerUsername: ownerRow[0]?.username ?? null, saved, tracks: items });
 });
 
 const createSchema = z.object({
@@ -76,6 +91,30 @@ playlistRoutes.post(
     return c.json({ cover: `/api/cover/playlist/${id}` });
   },
 );
+
+// POST /api/playlists/:id/save — bookmark someone's public playlist (toggle)
+playlistRoutes.post("/:id/save", requireAuth, async (c) => {
+  const userId = c.get("userId");
+  const id = param(c, "id");
+  const found = await db.select().from(playlists).where(eq(playlists.id, id)).limit(1);
+  const pl = found[0];
+  if (!pl) return c.json({ error: "not found" }, 404);
+  if (!pl.isPublic && pl.userId !== userId) return c.json({ error: "forbidden" }, 403);
+
+  const existing = await db
+    .select()
+    .from(playlistFollows)
+    .where(and(eq(playlistFollows.userId, userId), eq(playlistFollows.playlistId, id)))
+    .limit(1);
+  if (existing.length) {
+    await db
+      .delete(playlistFollows)
+      .where(and(eq(playlistFollows.userId, userId), eq(playlistFollows.playlistId, id)));
+    return c.json({ saved: false });
+  }
+  await db.insert(playlistFollows).values({ userId, playlistId: id }).onConflictDoNothing();
+  return c.json({ saved: true });
+});
 
 // DELETE /api/playlists/:id — owner or admin
 playlistRoutes.delete("/:id", requireAuth, async (c) => {

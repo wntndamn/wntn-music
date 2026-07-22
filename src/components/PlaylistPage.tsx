@@ -6,6 +6,8 @@ import {
   IconPencil,
   IconLock,
   IconWorld,
+  IconHeart,
+  IconHeartFilled,
 } from "@tabler/icons-react";
 import { useAuth } from "../hooks/useAuth";
 import { useTracks } from "../hooks/useTracks";
@@ -27,6 +29,7 @@ export default function PlaylistPage() {
   const [plCover, setPlCover] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(true);
   const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +44,7 @@ export default function PlaylistPage() {
         setPlCover(p.cover);
         setIsPublic(p.isPublic);
         setOwnerId(p.userId);
+        setSaved(p.saved);
         setRows(p.tracks);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "ошибка"));
@@ -65,6 +69,13 @@ export default function PlaylistPage() {
   const isOwner = Boolean(user && ownerId === user.id);
   const cover = plCover ?? rows[0]?.cover ?? "/covers/default.jpg";
 
+  const toggleSave = async () => {
+    if (!user) return navigate("/login");
+    if (!id) return;
+    setSaved((s) => !s);
+    await playlistApi.toggleSave(id).catch(() => setSaved((s) => !s));
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-end gap-4">
@@ -85,6 +96,16 @@ export default function PlaylistPage() {
             >
               <IconPlayerPlayFilled size={16} /> слушать
             </button>
+            {!isOwner && (
+              <button
+                onClick={() => void toggleSave()}
+                data-saved={saved}
+                aria-label={saved ? "убрать из сохранённых" : "сохранить плейлист"}
+                className="grid h-11 w-11 place-items-center rounded-card border border-border bg-surface text-muted transition-colors hover:bg-surface-hover data-[saved=true]:text-accent"
+              >
+                {saved ? <IconHeartFilled size={18} /> : <IconHeart size={18} />}
+              </button>
+            )}
             {isOwner && (
               <button
                 onClick={() => setEditing((e) => !e)}

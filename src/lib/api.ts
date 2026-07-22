@@ -93,6 +93,7 @@ export type SavedAlbum = {
   artistName: string;
   artistSlug: string;
 };
+export type SavedPlaylist = { id: string; title: string; cover: string | null; ownerUsername: string };
 
 export const meApi = {
   library: () =>
@@ -101,6 +102,7 @@ export const meApi = {
       playlists: PlaylistMeta[];
       following: FollowedArtist[];
       savedAlbums: SavedAlbum[];
+      savedPlaylists: SavedPlaylist[];
     }>("/me/library"),
   myArtist: () => api<{ artist: MyArtist | null }>("/me/artist"),
   toggleFollow: (artistId: string) =>
@@ -125,9 +127,12 @@ export const playlistApi = {
     api<
       PlaylistMeta & {
         userId: string;
+        ownerUsername: string | null;
+        saved: boolean;
         tracks: (LibraryTrack & { position: number })[];
       }
     >(`/playlists/${id}`),
+  toggleSave: (id: string) => api<{ saved: boolean }>(`/playlists/${id}/save`, { method: "POST" }),
   create: (b: { title: string; isPublic?: boolean }) =>
     api<{ id: string }>("/playlists", { method: "POST", body: b }),
   addTrack: (id: string, trackId: string) =>

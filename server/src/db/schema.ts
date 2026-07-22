@@ -166,6 +166,21 @@ export const savedAlbums = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.albumId] })],
 );
 
+// Saving someone else's public playlist to your library — like following an
+// artist, but for a playlist. Doesn't copy tracks, just bookmarks it.
+export const playlistFollows = pgTable(
+  "playlist_follows",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    playlistId: text("playlist_id")
+      .notNull()
+      .references(() => playlists.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.playlistId] })],
+);
+
 export const follows = pgTable(
   "follows",
   {

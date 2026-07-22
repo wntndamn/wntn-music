@@ -9,6 +9,7 @@ import {
   type PlaylistMeta,
   type FollowedArtist,
   type SavedAlbum,
+  type SavedPlaylist,
 } from "../lib/api";
 import TrackGrid, { GridSkeleton } from "./TrackGrid";
 import { useDialogs } from "./Dialogs";
@@ -20,6 +21,7 @@ export default function Library() {
   const [playlists, setPlaylists] = useState<PlaylistMeta[]>([]);
   const [following, setFollowing] = useState<FollowedArtist[]>([]);
   const [savedAlbums, setSavedAlbums] = useState<SavedAlbum[]>([]);
+  const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
   const [newTitle, setNewTitle] = useState("");
   const [newPublic, setNewPublic] = useState(true);
   const { confirm } = useDialogs();
@@ -36,6 +38,7 @@ export default function Library() {
           setPlaylists(l.playlists);
           setFollowing(l.following);
           setSavedAlbums(l.savedAlbums);
+          setSavedPlaylists(l.savedPlaylists);
         })
         .catch(() => {});
   }, [user]);
@@ -114,6 +117,35 @@ export default function Library() {
           </div>
         )}
       </section>
+
+      {savedPlaylists.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="font-display text-xl">сохранённые плейлисты</h2>
+          <div className="flex flex-wrap gap-3">
+            {savedPlaylists.map((p) => (
+              <Link
+                key={p.id}
+                to={`/playlist/${p.id}`}
+                className="group flex w-32 shrink-0 flex-col rounded-card bg-surface p-2 transition-colors hover:bg-surface-hover"
+              >
+                <img
+                  src={p.cover ?? "/covers/default.jpg"}
+                  alt=""
+                  className="aspect-square w-full rounded-md object-cover"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (!img.src.endsWith("/covers/default.jpg")) img.src = "/covers/default.jpg";
+                  }}
+                />
+                <p className="truncate px-1 pt-2 text-sm font-medium group-hover:underline">
+                  {p.title}
+                </p>
+                <p className="truncate px-1 text-xs text-muted">@{p.ownerUsername}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {savedAlbums.length > 0 && (
         <section className="flex flex-col gap-3">
