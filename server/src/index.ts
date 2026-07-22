@@ -22,7 +22,15 @@ import type { AppEnv } from "./types";
 
 const app = new Hono<AppEnv>();
 
-app.use("*", cors({ origin: env.webOrigin, credentials: true }));
+// same-origin in prod (Caddy serves both), but keep CORS correct for any
+// configured domain — echo back only origins we know.
+app.use(
+  "*",
+  cors({
+    origin: (origin) => (env.webOrigins.includes(origin) ? origin : env.webOrigins[0]),
+    credentials: true,
+  }),
+);
 app.get("/api/health", (c) => c.json({ ok: true }));
 
 app.route("/api/auth", authRoutes);

@@ -85,16 +85,21 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+      - s3
     environment:
       DOMAIN: ${DOMAIN:-localhost}
+      # separate hostname for object storage; presigned URLs are signed for it
+      S3_DOMAIN: ${S3_DOMAIN:-cdn.localhost}
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - caddy-data:/data
+      - caddy-config:/config
 
 volumes:
   db-data:
   redis-data:
   s3-data:
   caddy-data:
+  caddy-config:

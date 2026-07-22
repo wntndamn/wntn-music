@@ -9,7 +9,11 @@ export const env = {
   redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
   sessionSecret: req("SESSION_SECRET"),
   port: Number(process.env.PORT ?? 3000),
-  webOrigin: process.env.WEB_ORIGIN ?? "http://localhost",
+  // comma-separated: the site is served from several domains in prod
+  webOrigins: (process.env.WEB_ORIGIN ?? "http://localhost")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
   cookieSecure: process.env.COOKIE_SECURE !== "false",
   // comma-separated usernames with moderation rights
   adminUsernames: (process.env.ADMIN_USERNAMES ?? "")
