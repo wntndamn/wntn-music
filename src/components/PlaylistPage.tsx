@@ -8,6 +8,8 @@ import {
   IconWorld,
   IconHeart,
   IconHeartFilled,
+  IconChevronUp,
+  IconChevronDown,
 } from "@tabler/icons-react";
 import { useAuth } from "../hooks/useAuth";
 import { useTracks } from "../hooks/useTracks";
@@ -74,6 +76,15 @@ export default function PlaylistPage() {
     if (!id) return;
     setSaved((s) => !s);
     await playlistApi.toggleSave(id).catch(() => setSaved((s) => !s));
+  };
+
+  const move = async (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (!id || j < 0 || j >= rows.length) return;
+    const next = [...rows];
+    [next[i], next[j]] = [next[j], next[i]];
+    setRows(next);
+    await playlistApi.reorder(id, next.map((r) => r.id)).catch(() => {});
   };
 
   return (
@@ -160,6 +171,26 @@ export default function PlaylistPage() {
                 >
                   {r.title}
                 </Link>
+                {isOwner && (
+                  <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      onClick={() => void move(i, -1)}
+                      disabled={i === 0}
+                      aria-label="выше"
+                      className="grid h-4 w-6 place-items-center text-muted hover:text-text disabled:opacity-30"
+                    >
+                      <IconChevronUp size={13} />
+                    </button>
+                    <button
+                      onClick={() => void move(i, 1)}
+                      disabled={i === rows.length - 1}
+                      aria-label="ниже"
+                      className="grid h-4 w-6 place-items-center text-muted hover:text-text disabled:opacity-30"
+                    >
+                      <IconChevronDown size={13} />
+                    </button>
+                  </div>
+                )}
                 {t && (
                   <button
                     onClick={() => play(t, playable)}

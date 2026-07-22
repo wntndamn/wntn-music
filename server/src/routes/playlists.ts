@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { bodyLimit } from "hono/body-limit";
 import { db } from "../db";
 import { playlists, playlistTracks, tracks, playlistFollows, users } from "../db/schema";
@@ -132,14 +132,36 @@ playlistRoutes.post("/:id/tracks", requireAuth, async (c) => {
   if (!(await ownsPlaylist(id, userId))) return c.json({ error: "forbidden" }, 403);
   const body = z.object({ trackId: z.string() }).safeParse(await c.req.json().catch(() => null));
   if (!body.success) return c.json({ error: "invalid input" }, 400);
-  const count = await db
-    .select({ id: playlistTracks.trackId })
+  // max+1, not count: removing a track from the middle leaves gaps, and a
+  // count-based position would collide with an existing row.
+  const last = await db
+    .select({ n: sql<number>`coalesce(max(${playlistTracks.position}), -1)` })
     .from(playlistTracks)
     .where(eq(playlistTracks.playlistId, id));
   await db
     .insert(playlistTracks)
-    .values({ playlistId: id, trackId: body.data.trackId, position: count.length })
+    .values({ playlistId: id, trackId: body.data.trackId, position: (last[0]?.n ?? -1) + 1 })
     .onConflictDoNothing();
+  return c.json({ ok: true });
+});
+
+// PUT /api/playlists/:id/reorder — body { trackIds: [...] } in the desired order
+playlistRoutes.put("/:id/reorder", requireAuth, async (c) => {
+  const id = param(c, "id");
+  if (!(await ownsPlaylist(id, c.get("userId")))) return c.json({ error: "forbidden" }, 403);
+  const body = z
+    .object({ trackIds: z.array(z.string()).min(1) })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!body.success) return c.json({ error: "invalid input" }, 400);
+
+  await Promise.all(
+    body.data.trackIds.map((trackId, i) =>
+      db
+        .update(playlistTracks)
+        .set({ position: i })
+        .where(and(eq(playlistTracks.playlistId, id), eq(playlistTracks.trackId, trackId))),
+    ),
+  );
   return c.json({ ok: true });
 });
 

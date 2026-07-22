@@ -133,6 +133,8 @@ export const playlistApi = {
       }
     >(`/playlists/${id}`),
   toggleSave: (id: string) => api<{ saved: boolean }>(`/playlists/${id}/save`, { method: "POST" }),
+  reorder: (id: string, trackIds: string[]) =>
+    api<{ ok: true }>(`/playlists/${id}/reorder`, { method: "PUT", body: { trackIds } }),
   create: (b: { title: string; isPublic?: boolean }) =>
     api<{ id: string }>("/playlists", { method: "POST", body: b }),
   addTrack: (id: string, trackId: string) =>
