@@ -3,7 +3,7 @@ import { eq, desc, inArray, count } from "drizzle-orm";
 import { db } from "../db";
 import { tracks, artists, trackVersions, lyrics, trackArtists } from "../db/schema";
 import { redis } from "../redis";
-import { param } from "../types";
+import { param, trackShortIdFromParam } from "../types";
 
 // Audio is streamed via GET /api/audio/:versionId (302 -> presigned S3 URL),
 // so the catalog only needs to expose the version id, not storage details.
@@ -41,6 +41,8 @@ async function withFeatures<T extends { id: string; primaryVersionId: string | n
 
 const catalogColumns = {
   id: tracks.id,
+  slug: tracks.slug,
+  shortId: tracks.shortId,
   title: tracks.title,
   cover: tracks.cover,
   plays: tracks.plays,
@@ -85,12 +87,36 @@ trackRoutes.get("/", async (c) => {
   });
 });
 
+// Resolves a /:id param to a real track id. Tries the full id first (old
+// 64-hex links, uuids), then falls back to the trailing shortId of a pretty
+// `<slug>-<shortId>` url.
+async function resolveTrackId(paramValue: string): Promise<string | null> {
+  const exact = await db
+    .select({ id: tracks.id })
+    .from(tracks)
+    .where(eq(tracks.id, paramValue))
+    .limit(1);
+  if (exact[0]) return exact[0].id;
+
+  const short = trackShortIdFromParam(paramValue);
+  if (!short) return null;
+  const byShort = await db
+    .select({ id: tracks.id })
+    .from(tracks)
+    .where(eq(tracks.shortId, short))
+    .limit(1);
+  return byShort[0]?.id ?? null;
+}
+
 // GET /api/tracks/:id  -> track + versions + lyrics
 trackRoutes.get("/:id", async (c) => {
-  const id = param(c, "id");
+  const id = await resolveTrackId(param(c, "id"));
+  if (!id) return c.json({ error: "not found" }, 404);
   const found = await db
     .select({
       id: tracks.id,
+      slug: tracks.slug,
+      shortId: tracks.shortId,
       title: tracks.title,
       cover: tracks.cover,
       plays: tracks.plays,
@@ -100,6 +126,7 @@ trackRoutes.get("/:id", async (c) => {
       albumId: tracks.albumId,
       genres: tracks.genres,
       explicit: tracks.explicit,
+      clipKey: tracks.clipKey,
     })
     .from(tracks)
     .innerJoin(artists, eq(tracks.artistId, artists.id))
@@ -122,9 +149,11 @@ trackRoutes.get("/:id", async (c) => {
   // live play count: Redis buffer may be ahead of the DB (flushes every 20)
   const buffered = Number((await redis.get(`plays:${id}`)) ?? 0);
 
+  const { clipKey, ...rest } = track;
   return c.json({
-    ...track,
+    ...rest,
     features,
+    clip: clipKey ? `/api/clip/${id}` : null,
     plays: Math.max(track.plays, buffered),
     versions: versions.map((v) => ({
       id: v.id,

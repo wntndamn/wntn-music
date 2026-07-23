@@ -66,6 +66,10 @@ export const albums = pgTable("albums", {
 
 export const tracks = pgTable("tracks", {
   id: text("id").primaryKey(),
+  // cosmetic url slug + a stable 16-char short id (sha256(id)[:16]); the pretty
+  // url is `<slug>-<shortId>`, and lookups resolve by shortId, not the full id
+  slug: text("slug"),
+  shortId: text("short_id").unique(),
   title: text("title").notNull(),
   artistId: text("artist_id")
     .notNull()
@@ -73,6 +77,7 @@ export const tracks = pgTable("tracks", {
   albumId: text("album_id").references(() => albums.id, { onDelete: "set null" }),
   cover: text("cover"), // display URL: static path or /api/cover/:id
   coverKey: text("cover_key"), // S3 key when the cover was uploaded
+  clipKey: text("clip_key"), // S3 key for an optional video clip
   duration: integer("duration"),
   genres: text("genres").array().notNull().default([]),
   explicit: boolean("explicit").notNull().default(false),

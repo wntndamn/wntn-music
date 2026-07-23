@@ -18,13 +18,14 @@ import {
   IconX,
   IconTrash,
 } from "@tabler/icons-react";
-import { formatTime, slugify } from "../lib/tracks";
+import { formatTime, slugify, trackPath } from "../lib/tracks";
 import { usePlayer } from "../hooks/usePlayer";
 import { useVirtualList } from "../hooks/useVirtualList";
 import { trackApi } from "../lib/api";
 import LikeButton from "./LikeButton";
 import LyricsPanel from "./LyricsPanel";
 import EqBars from "./EqBars";
+import AudioVisualizer from "./AudioVisualizer";
 
 export default function Player() {
   const { current } = usePlayer();
@@ -369,7 +370,7 @@ function FullPlayer({ onClose }: { onClose: () => void }) {
           <div className="flex w-full flex-col gap-3">
           <div className="w-full text-center">
             <Link
-              to={`/track/${current.id}`}
+              to={trackPath(current)}
               onClick={onClose}
               className="block truncate font-display text-xl hover:underline"
             >
@@ -382,6 +383,10 @@ function FullPlayer({ onClose }: { onClose: () => void }) {
             >
               {current.author}
             </Link>
+          </div>
+
+          <div className="h-12 w-full">
+            <AudioVisualizer playing={isPlaying} />
           </div>
 
           <div className="flex w-full flex-col gap-1" data-noswipe>

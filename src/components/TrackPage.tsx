@@ -175,6 +175,19 @@ export default function TrackPage() {
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-8">
+        {detail.clip && (
+          <div className="flex flex-col gap-3">
+            <h2 className="text-xs uppercase tracking-wide text-muted">клип</h2>
+            <video
+              src={detail.clip}
+              poster={detail.cover ?? undefined}
+              controls
+              playsInline
+              preload="metadata"
+              className="w-full rounded-card bg-black"
+            />
+          </div>
+        )}
         <div className="flex flex-col gap-3">
           <h2 className="text-xs uppercase tracking-wide text-muted">текст</h2>
           <LyricsPanel content={detail.lyrics?.content ?? null} active={active} />

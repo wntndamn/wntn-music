@@ -59,7 +59,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVol] = useState(1);
+  // restored from localStorage; writes are debounced so a slider drag doesn't
+  // hammer storage on every pointer move
+  const [volume, setVol] = useState(() => {
+    const saved = Number(localStorage.getItem("volume"));
+    return Number.isFinite(saved) && saved >= 0 && saved <= 1 ? saved : 1;
+  });
   // cached locally so the very first message isn't missed while /auth/me loads
   const [syncMode, setSyncMode] = useState<PlaybackSync>(
     () => (localStorage.getItem("playbackSync") as PlaybackSync | null) ?? "tabs",
@@ -196,6 +201,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
+    // debounce the write: only persist once the slider settles
+    const t = setTimeout(() => localStorage.setItem("volume", String(volume)), 400);
+    return () => clearTimeout(t);
   }, [volume]);
 
   function play(track: Track, q?: Track[]) {

@@ -56,6 +56,8 @@ homeRoutes.get("/", async (c) => {
   const popularRows = await db
     .select({
       id: tracks.id,
+      slug: tracks.slug,
+      shortId: tracks.shortId,
       title: tracks.title,
       cover: tracks.cover,
       plays: tracks.plays,

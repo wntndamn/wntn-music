@@ -68,6 +68,8 @@ export type TrackVersion = {
 };
 export type TrackDetail = {
   id: string;
+  slug: string | null;
+  shortId: string | null;
   title: string;
   cover: string | null;
   plays: number;
@@ -78,6 +80,7 @@ export type TrackDetail = {
   genres: string[];
   explicit: boolean;
   features: { id: string; name: string; slug: string }[];
+  clip: string | null;
   versions: TrackVersion[];
   lyrics: { content: string; synced: boolean } | null;
 };
@@ -188,6 +191,8 @@ export type HomePlaylist = {
 };
 export type HomePopularTrack = {
   id: string;
+  slug?: string | null;
+  shortId?: string | null;
   title: string;
   cover: string | null;
   plays: number;
@@ -404,6 +409,13 @@ export const manageApi = {
     fd.append("file", file);
     return uploadForm<{ ok: true }>(`/manage/tracks/${trackId}/cover`, fd);
   },
+  uploadClip: (trackId: string, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return uploadForm<{ clip: string }>(`/manage/tracks/${trackId}/clip`, fd);
+  },
+  deleteClip: (trackId: string) =>
+    api<{ ok: true }>(`/manage/tracks/${trackId}/clip`, { method: "DELETE" }),
   putLyrics: (trackId: string, content: string) =>
     api<{ ok: true; synced: boolean }>(`/manage/tracks/${trackId}/lyrics`, {
       method: "PUT",

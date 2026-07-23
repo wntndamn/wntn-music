@@ -15,7 +15,7 @@ import {
   type HomePlaylist,
   type HomePopularTrack,
 } from "../lib/api";
-import { toTrack, type Track } from "../lib/tracks";
+import { toTrack, trackPath, type Track } from "../lib/tracks";
 import TrackGrid, { GridSkeleton } from "./TrackGrid";
 import TrackMenu from "./TrackMenu";
 import TrackRow from "./TrackRow";
@@ -245,7 +245,7 @@ function Hero({
 
         {lead && (
           <Link
-            to={`/track/${lead.id}`}
+            to={trackPath(lead)}
             viewTransition
             className="group flex items-center gap-3 self-start rounded-card border border-border bg-bg/70 p-2 backdrop-blur md:self-end"
           >

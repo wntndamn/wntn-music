@@ -15,7 +15,7 @@ import {
 import { useTracks } from "../hooks/useTracks";
 import { useAuth } from "../hooks/useAuth";
 import { usePlayer } from "../hooks/usePlayer";
-import type { Track } from "../lib/tracks";
+import { trackPath, type Track } from "../lib/tracks";
 import { artistApi, type ArtistProfile } from "../lib/api";
 import { GridSkeleton } from "./TrackGrid";
 import FollowButton from "./FollowButton";
@@ -258,7 +258,7 @@ export default function ArtistPage() {
                   className="h-10 w-10 rounded object-cover"
                 />
                 <Link
-                  to={`/track/${t.id}`}
+                  to={trackPath(t)}
                   viewTransition
                   className="flex-1 truncate text-sm hover:underline"
                 >

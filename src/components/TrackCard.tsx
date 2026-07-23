@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { IconPlayerPlayFilled, IconPlayerPauseFilled } from "@tabler/icons-react";
-import { slugify, type Track } from "../lib/tracks";
+import { slugify, trackPath, type Track } from "../lib/tracks";
 import { usePlayer } from "../hooks/usePlayer";
 import LikeButton from "./LikeButton";
 
@@ -50,7 +50,7 @@ export default function TrackCard({ track, queue }: { track: Track; queue: Track
       </div>
       <div className="px-1 pt-2">
         <Link
-          to={`/track/${track.id}`}
+          to={trackPath(track)}
           viewTransition
           className="block truncate text-sm font-medium hover:underline"
           title={track.title}

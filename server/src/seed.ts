@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { eq } from "drizzle-orm";
 import { db, client } from "./db";
 import { artists, tracks, trackVersions } from "./db/schema";
-import { newId, slugify } from "./types";
+import { newId, slugify, contentSlug, shortIdFor } from "./types";
 import { ensureBucket, objectExists, putObject } from "./storage";
 
 // One-time import: public/track-list.json -> artists/tracks/versions, and pushes
@@ -43,7 +43,14 @@ async function main() {
     const artistId = await ensureArtist(t.author);
     await db
       .insert(tracks)
-      .values({ id: t.id, title: t.title, artistId, cover: t.cover })
+      .values({
+        id: t.id,
+        slug: contentSlug(t.title),
+        shortId: shortIdFor(t.id),
+        title: t.title,
+        artistId,
+        cover: t.cover,
+      })
       .onConflictDoNothing();
 
     const audioKey = await uploadAudio(t.song);

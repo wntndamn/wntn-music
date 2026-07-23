@@ -1,5 +1,7 @@
 export type Track = {
   id: string;
+  slug?: string | null;
+  shortId?: string | null;
   title: string;
   author: string;
   cover: string;
@@ -8,6 +10,13 @@ export type Track = {
   plays?: number;
   features?: { name: string; slug: string }[];
 };
+
+// Pretty track url: `/track/<slug>-<shortId>`, falling back to the raw id for
+// anything not yet carrying the short fields.
+export function trackPath(t: { id: string; slug?: string | null; shortId?: string | null }) {
+  if (!t.shortId) return `/track/${t.id}`;
+  return t.slug ? `/track/${t.slug}-${t.shortId}` : `/track/${t.shortId}`;
+}
 
 type RawTrack = {
   id: string;
@@ -35,6 +44,8 @@ export async function fetchTracks(): Promise<Track[]> {
 
 type ApiTrack = {
   id: string;
+  slug?: string | null;
+  shortId?: string | null;
   title: string;
   cover: string | null;
   author: string;
@@ -45,6 +56,8 @@ type ApiTrack = {
 
 export const toTrack = (r: ApiTrack): Track => ({
   id: r.id,
+  slug: r.slug,
+  shortId: r.shortId,
   title: r.title,
   author: r.author,
   cover: r.cover ?? "/covers/default.jpg",

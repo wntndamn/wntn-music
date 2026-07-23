@@ -7,7 +7,7 @@ import { tracks, trackVersions, artists, lyrics, trackArtists, albums } from "..
 import { requireAuth, isAdminRole } from "../auth";
 import { putObject, deleteObject } from "../storage";
 import { readImageForm } from "../upload";
-import { newId, param, type AppEnv } from "../types";
+import { newId, param, contentSlug, shortIdFor, type AppEnv } from "../types";
 
 // Files are uploaded THROUGH the api (same-origin) and streamed to storage,
 // so the browser never makes a cross-origin PUT (no S3 CORS needed).
@@ -78,6 +78,8 @@ manageRoutes.post("/tracks", async (c) => {
   const id = newId();
   await db.insert(tracks).values({
     id,
+    slug: contentSlug(body.data.title),
+    shortId: shortIdFor(id),
     title: body.data.title,
     artistId: body.data.artistId,
     albumId: body.data.albumId,
@@ -121,6 +123,45 @@ manageRoutes.post("/tracks/:id/versions", uploadLimit, async (c) => {
     await db.update(tracks).set({ primaryVersionId: versionId }).where(eq(tracks.id, trackId));
   }
   return c.json({ versionId });
+});
+
+const clipLimit = bodyLimit({ maxSize: 200 * 1024 * 1024 }); // 200MB video
+const CLIP_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+
+// POST /api/manage/tracks/:id/clip — multipart upload of a video clip
+manageRoutes.post("/tracks/:id/clip", clipLimit, async (c) => {
+  const trackId = param(c, "id");
+  if (!(await ownsTrack(trackId, c.get("userId"), c.get("role"))))
+    return c.json({ error: "forbidden" }, 403);
+
+  const form = await c.req.parseBody();
+  const file = form["file"];
+  if (!(file instanceof File)) return c.json({ error: "file required" }, 400);
+  const ext = (file.name.split(".").pop() ?? "mp4").toLowerCase();
+  if (!/^[a-z0-9]{1,5}$/.test(ext)) return c.json({ error: "bad extension" }, 400);
+  const contentType = file.type || "video/mp4";
+  if (!CLIP_TYPES.includes(contentType))
+    return c.json({ error: "video only (mp4/webm/mov)" }, 400);
+
+  const clipKey = `clips/${trackId}.${ext}`;
+  await putObject(clipKey, new Uint8Array(await file.arrayBuffer()), contentType);
+  await db.update(tracks).set({ clipKey }).where(eq(tracks.id, trackId));
+  return c.json({ clip: `/api/clip/${trackId}` });
+});
+
+// DELETE /api/manage/tracks/:id/clip — remove the clip + its S3 object
+manageRoutes.delete("/tracks/:id/clip", async (c) => {
+  const trackId = param(c, "id");
+  if (!(await ownsTrack(trackId, c.get("userId"), c.get("role"))))
+    return c.json({ error: "forbidden" }, 403);
+  const row = await db
+    .select({ clipKey: tracks.clipKey })
+    .from(tracks)
+    .where(eq(tracks.id, trackId))
+    .limit(1);
+  if (row[0]?.clipKey) await deleteObject(row[0].clipKey);
+  await db.update(tracks).set({ clipKey: null }).where(eq(tracks.id, trackId));
+  return c.json({ ok: true });
 });
 
 // POST /api/manage/tracks/:id/cover — multipart upload of a cover image
@@ -218,7 +259,11 @@ manageRoutes.put("/tracks/:id", async (c) => {
     }
   }
 
-  await db.update(tracks).set(body.data).where(eq(tracks.id, trackId));
+  // keep the url slug in step with the title
+  const patch = body.data.title
+    ? { ...body.data, slug: contentSlug(body.data.title) }
+    : body.data;
+  await db.update(tracks).set(patch).where(eq(tracks.id, trackId));
   return c.json({ ok: true });
 });
 
@@ -261,11 +306,16 @@ manageRoutes.delete("/tracks/:id", async (c) => {
       .select({ audioKey: trackVersions.audioKey })
       .from(trackVersions)
       .where(eq(trackVersions.trackId, trackId)),
-    db.select({ coverKey: tracks.coverKey }).from(tracks).where(eq(tracks.id, trackId)).limit(1),
+    db
+      .select({ coverKey: tracks.coverKey, clipKey: tracks.clipKey })
+      .from(tracks)
+      .where(eq(tracks.id, trackId))
+      .limit(1),
   ]);
   await db.delete(tracks).where(eq(tracks.id, trackId));
   for (const v of versions) await deleteObject(v.audioKey);
   if (trackRow[0]?.coverKey) await deleteObject(trackRow[0].coverKey);
+  if (trackRow[0]?.clipKey) await deleteObject(trackRow[0].clipKey);
   return c.json({ ok: true });
 });
 

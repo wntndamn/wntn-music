@@ -710,6 +710,22 @@ function TrackManageRow({
                     onPick={(f) => run("загрузка обложки", () => manageApi.uploadCover(track.id, f), true)}
                   />
                 </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted">клип:</span>
+                  <FileButton
+                    label={detail?.clip ? "заменить видео" : "залить видео"}
+                    accept="video/*"
+                    onPick={(f) => run("загрузка клипа", () => manageApi.uploadClip(track.id, f))}
+                  />
+                  {detail?.clip && (
+                    <button
+                      onClick={() => run("удаление клипа", () => manageApi.deleteClip(track.id))}
+                      className="rounded-md border border-border px-2.5 py-1.5 text-xs text-muted hover:text-accent"
+                    >
+                      удалить
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 

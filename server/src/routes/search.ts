@@ -20,6 +20,8 @@ searchRoutes.get("/", async (c) => {
     db
       .select({
         id: tracks.id,
+        slug: tracks.slug,
+        shortId: tracks.shortId,
         title: tracks.title,
         cover: tracks.cover,
         plays: tracks.plays,
