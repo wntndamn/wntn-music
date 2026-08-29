@@ -18,11 +18,3 @@
 		file_server
 	}
 }
-
-# Object storage (audio, covers, avatars) on its own hostname, so presigned URLs
-# point at a real domain instead of an internal container address. Presigned
-# signatures cover the Host header, so this must not rewrite it.
-{$S3_DOMAIN:cdn.localhost} {
-	encode zstd gzip
-	reverse_proxy s3:9000
-}

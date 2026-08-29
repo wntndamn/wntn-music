@@ -8,7 +8,7 @@
 - **Фронт:** Vite + React + TS + Tailwind (дизайн в духе cobalt.tools, шрифты IBM Plex + Unbounded)
 - **API:** Node + Hono + Drizzle
 - **БД:** Postgres 16 · **кэш/сессии:** Redis 7
-- **Файлы:** S3-совместимое хранилище (локально **rustfs**, в проде R2/MinIO/AWS) — presigned upload, аудио через `/api/audio/:id` (302 → presigned GET)
+- **Файлы:** S3-совместимое хранилище (в проде **Cloudflare R2**) — аудио через `/api/audio/:id` (302 → публичный домен бакета)
 - **Прокси/TLS:** Caddy · всё в Docker Compose
 
 ## Быстрый старт (Docker)
@@ -27,7 +27,7 @@ docker compose run --rm api pnpm seed      # импорт треков из publ
 Подними только хранилища, остальное на хосте:
 
 ```bash
-docker compose up -d db redis s3
+docker compose up -d db redis
 cd server && S3_ENDPOINT=http://localhost:9000 \
   DATABASE_URL=postgres://wntn:$POSTGRES_PASSWORD@localhost:5432/wntn \
   REDIS_URL=redis://localhost:6379 SESSION_SECRET=dev pnpm db:push && pnpm seed && pnpm dev
@@ -38,18 +38,20 @@ pnpm dev   # фронт в другом терминале — vite прокси
 
 `server/src/storage.ts` работает с любым S3 через env:
 
-| | rustfs/MinIO (локально) | Cloudflare R2 / AWS |
+| | Cloudflare R2 (прод) | rustfs/MinIO (свой сервер) |
 |---|---|---|
-| `S3_ENDPOINT` | `http://s3:9000` | endpoint провайдера |
-| `S3_PUBLIC_ENDPOINT` | `http://localhost:9000` / домен | публичный домен бакета |
-| `S3_FORCE_PATH_STYLE` | `true` | `false` |
+| `S3_ENDPOINT` | `https://<account>.r2.cloudflarestorage.com` | `http://localhost:9000` |
+| `S3_PUBLIC_BASE_URL` | публичный домен бакета | — |
+| `S3_PUBLIC_ENDPOINT` | — | домен, доступный браузеру |
+| `S3_FORCE_PATH_STYLE` | `false` | `true` |
 
-`S3_PUBLIC_ENDPOINT` зашивается в presigned-URL → должен быть доступен браузеру.
-В Docker api ходит в s3 по внутреннему имени, а ссылки отдаёт публичные.
+С `S3_PUBLIC_BASE_URL` ссылки — обычные `<домен>/<key>`, их кэширует CDN.
+Без неё api подписывает URL на `S3_PUBLIC_ENDPOINT` (он должен быть доступен браузеру).
+Локальное хранилище поднимается отдельно: `docker run -d -p 9000:9000 -v wntn-s3:/data rustfs/rustfs /data`.
 
 ## Деплой на VPS
 
-1. `DOMAIN=твой.домен`, `S3_PUBLIC_ENDPOINT=https://s3.твой.домен`, `COOKIE_SECURE=true` в `.env`
+1. `DOMAIN=твой.домен`, `COOKIE_SECURE=true` и блок R2 (`S3_*`) в `.env`
 2. `docker compose up -d --build` (Caddy сам возьмёт TLS)
 3. Первый раз: `docker compose run --rm api pnpm db:push && docker compose run --rm api pnpm seed`
 
