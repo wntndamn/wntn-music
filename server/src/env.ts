@@ -28,6 +28,9 @@ export const env = {
     // http://localhost:9000 (or a domain). Defaults to S3_ENDPOINT.
     publicEndpoint:
       process.env.S3_PUBLIC_ENDPOINT ?? process.env.S3_ENDPOINT ?? "http://localhost:9000",
+    // Public bucket base URL (R2 custom domain). When set, GET URLs are plain
+    // ${base}/${key} instead of presigned — the CDN can then cache them.
+    publicBaseUrl: process.env.S3_PUBLIC_BASE_URL?.replace(/\/+$/, ""),
     region: process.env.S3_REGION ?? "us-east-1",
     // no fallbacks: a prod deploy that forgets these must fail loudly rather
     // than run on credentials published in this repo

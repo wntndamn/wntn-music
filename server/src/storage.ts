@@ -34,8 +34,11 @@ const s3Public = new S3Client({
 
 const BUCKET = env.s3.bucket;
 
-// Time-limited download URL — used by the /api/audio redirect.
-export function presignGet(key: string) {
+// Download URL — used by the /api/audio, /cover, /avatar, /clip redirects.
+// With a public bucket domain (R2) the URL is plain and CDN-cacheable; without
+// one (local rustfs) it's a time-limited presigned URL.
+export function presignGet(key: string): string | Promise<string> {
+  if (env.s3.publicBaseUrl) return `${env.s3.publicBaseUrl}/${key.split("/").map(encodeURIComponent).join("/")}`;
   return getSignedUrl(s3Public, new GetObjectCommand({ Bucket: BUCKET, Key: key }), {
     expiresIn: 3600,
   });
@@ -69,6 +72,8 @@ export async function ensureBucket() {
   try {
     await s3.send(new HeadBucketCommand({ Bucket: BUCKET }));
   } catch {
-    await s3.send(new CreateBucketCommand({ Bucket: BUCKET }));
+    // R2 tokens are usually bucket-scoped and can't create — if the bucket is
+    // already there, the next putObject proves it; a real problem fails there.
+    await s3.send(new CreateBucketCommand({ Bucket: BUCKET })).catch(() => {});
   }
 }
